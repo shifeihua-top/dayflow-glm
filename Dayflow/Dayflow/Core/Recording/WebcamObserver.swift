@@ -84,6 +84,7 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
 
   /// Called once at app launch. Starts observing when the module is enabled
   /// and follows the app-wide recording flag afterwards.
+  @MainActor
   func bootstrap() {
     AppState.shared.$isRecording
       .receive(on: DispatchQueue.main)
