@@ -77,8 +77,10 @@ jobs:
             echo "GLM_IDENTITY=-" >> "$GITHUB_ENV"
             exit 0
           fi
-          # Self-signed root: trust it for code signing so codesign accepts the identity
-          security add-trusted-cert -r trustRoot -p codeSign -k glm.keychain /tmp/glm-cert.pem
+          # Self-signed root: trust it for code signing so codesign accepts the
+          # identity. User-domain trust would wait on a GUI prompt on runners —
+          # use the admin domain (-d) with passwordless sudo instead.
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign /tmp/glm-cert.pem
           security set-key-partition-list -S apple-tool:,apple: -s -k "$GLM_KEYCHAIN_PASSWORD" glm.keychain
           security find-identity -v -p codesigning glm.keychain
           rm /tmp/glm-signing.p12 /tmp/glm-cert.pem
