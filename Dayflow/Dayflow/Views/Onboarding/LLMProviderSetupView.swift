@@ -491,6 +491,7 @@ struct LLMProviderSetupView: View {
                 VStack(alignment: .leading, spacing: 12) {
                   Picker("Endpoint", selection: $setupState.openAICompatiblePreset) {
                     Text("OpenRouter").tag(OpenAICompatiblePreset.openRouter)
+                    Text("智谱 GLM").tag(OpenAICompatiblePreset.zhipuGLM)
                     Text("Custom").tag(OpenAICompatiblePreset.custom)
                   }
                   .pickerStyle(.segmented)
@@ -499,6 +500,15 @@ struct LLMProviderSetupView: View {
                     if preset == .openRouter {
                       setupState.openAICompatibleBaseURL =
                         OpenAICompatibleConfiguration.openRouterBaseURL
+                    } else if preset == .zhipuGLM {
+                      setupState.openAICompatibleBaseURL =
+                        OpenAICompatibleConfiguration.zhipuGLMBaseURL
+                      if setupState.openAICompatibleModelID.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                      ).isEmpty {
+                        setupState.openAICompatibleModelID =
+                          OpenAICompatibleConfiguration.zhipuGLMDefaultModelID
+                      }
                     }
                     setupState.hasTestedConnection = false
                     setupState.testSuccessful = false
@@ -510,8 +520,14 @@ struct LLMProviderSetupView: View {
                     apiKey: $setupState.openAICompatibleAPIKey,
                     engine: .custom,
                     buttonLabel: String(localized: "Test endpoint"),
-                    basePlaceholder: OpenAICompatibleConfiguration.openRouterBaseURL,
-                    modelPlaceholder: "openai/gpt-5.6-sol",
+                    basePlaceholder:
+                      setupState.openAICompatiblePreset == .zhipuGLM
+                      ? OpenAICompatibleConfiguration.zhipuGLMBaseURL
+                      : OpenAICompatibleConfiguration.openRouterBaseURL,
+                    modelPlaceholder:
+                      setupState.openAICompatiblePreset == .zhipuGLM
+                      ? OpenAICompatibleConfiguration.zhipuGLMDefaultModelID
+                      : "openai/gpt-5.6-sol",
                     credentialStorageDescription:
                       String(
                         localized:
@@ -560,6 +576,9 @@ struct LLMProviderSetupView: View {
                   apiKey: $setupState.localAPIKey,
                   engine: setupState.localEngine,
                   showInputs: setupState.localEngine == .custom,
+                  basePlaceholder:
+                    setupState.localEngine == .custom
+                    ? OpenAICompatibleConfiguration.zhipuGLMBaseURL : nil,
                   onTestComplete: { success in
                     setupState.hasTestedConnection = true
                     setupState.testSuccessful = success

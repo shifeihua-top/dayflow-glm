@@ -1,0 +1,59 @@
+name: Build Dayflow GLM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          XC_PATH=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $XC_PATH"
+          sudo xcode-select -s "$XC_PATH"
+          xcodebuild -version
+
+      - name: Build app (code signing disabled)
+        run: |
+          xcodebuild \
+            -project Dayflow/Dayflow.xcodeproj \
+            -scheme Dayflow \
+            -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build \
+            POSTHOG_API_KEY="" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet build
+
+      - name: Ad-hoc sign and verify
+        run: |
+          APP="build/Build/Products/Release/Dayflow.app"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict "$APP" && echo "signature OK"
+
+      - name: Package DMG and zip
+        run: |
+          APP="build/Build/Products/Release/Dayflow.app"
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")
+          DMG="Dayflow-${VERSION}-glm.dmg"
+          ZIP="Dayflow-${VERSION}-glm.app.zip"
+          hdiutil create -volname "Dayflow ${VERSION} GLM" -srcfolder "$APP" -ov -format UDZO "$DMG"
+          zip -qry "$ZIP" "$APP"
+          ls -lh "$DMG" "$ZIP"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dayflow-glm-macos
+          path: |
+            *.dmg
+            *.app.zip
+          if-no-files-found: error

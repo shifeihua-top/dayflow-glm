@@ -2,11 +2,24 @@ import Foundation
 
 enum OpenAICompatiblePreset: String, Codable, CaseIterable {
   case openRouter = "openrouter"
+  case zhipuGLM = "zhipu_glm"
   case custom
+
+  var presetDisplayName: String {
+    switch self {
+    case .openRouter: return "OpenRouter"
+    case .zhipuGLM: return "智谱 GLM"
+    case .custom: return String(localized: "Custom")
+    }
+  }
 }
 
 struct OpenAICompatibleConfiguration: Codable, Equatable {
   static let openRouterBaseURL = "https://openrouter.ai/api/v1"
+  static let zhipuGLMBaseURL = "https://open.bigmodel.cn/api/paas/v4"
+  // Dayflow sends a screenshot with every analysis request, so the default
+  // model must accept image input; text-only GLM models cannot describe frames.
+  static let zhipuGLMDefaultModelID = "glm-4.6v"
 
   let preset: OpenAICompatiblePreset
   let baseURL: String
@@ -22,6 +35,14 @@ struct OpenAICompatibleConfiguration: Codable, Equatable {
     OpenAICompatibleConfiguration(
       preset: .openRouter,
       baseURL: openRouterBaseURL,
+      modelID: modelID
+    )
+  }
+
+  static func zhipuGLM(modelID: String = zhipuGLMDefaultModelID) -> OpenAICompatibleConfiguration {
+    OpenAICompatibleConfiguration(
+      preset: .zhipuGLM,
+      baseURL: zhipuGLMBaseURL,
       modelID: modelID
     )
   }

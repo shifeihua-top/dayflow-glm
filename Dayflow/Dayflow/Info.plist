@@ -30,19 +30,19 @@
 	<key>PHPostHogApiKey</key>
 	<string>$(POSTHOG_API_KEY)</string>
 	<key>SUAllowsAutomaticUpdates</key>
-	<true/>
+	<false/>
 	<key>SUAutomaticallyUpdate</key>
-	<true/>
+	<false/>
 	<key>SUEnableAutomaticChecks</key>
-	<true/>
+	<false/>
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://dayflow.so/appcast.xml</string>
+	<string>https://dayflow.so/appcast.xml.disabled-for-glm-build</string>
 	<key>SUPublicEDKey</key>
 	<string>lf33Kn/Gx26j9zfGtsNNc6Lk2QTBHyXkFxxwnsXmdYA=</string>
 	<key>SUScheduledCheckInterval</key>
-	<integer>3600</integer>
+	<integer>0</integer>
 	<key>UIAppFonts</key>
 	<array>
 		<string>InstrumentSerif-Regular.ttf</string>

@@ -26,6 +26,56 @@ final class OpenAICompatibleConfigurationTests: XCTestCase {
     XCTAssertTrue(configuration.isComplete)
   }
 
+  func testZhipuGLMPresetBuildsV4ChatCompletionsURL() {
+    let configuration = OpenAICompatibleConfiguration.zhipuGLM()
+
+    XCTAssertEqual(configuration.preset, .zhipuGLM)
+    XCTAssertEqual(configuration.baseURL, "https://open.bigmodel.cn/api/paas/v4")
+    XCTAssertEqual(configuration.modelID, "glm-4.6v")
+    XCTAssertEqual(
+      configuration.chatCompletionsURL?.absoluteString,
+      "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+    )
+    XCTAssertTrue(configuration.isComplete)
+  }
+
+  func testZhipuGLMCodingPresetBuildsV4ChatCompletionsURL() {
+    XCTAssertEqual(
+      LocalEndpointUtilities.chatCompletionsURL(
+        baseURL: "https://open.bigmodel.cn/api/coding/paas/v4"
+      )?.absoluteString,
+      "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions"
+    )
+  }
+
+  func testFullChatCompletionsURLIsKeptAsIs() {
+    XCTAssertEqual(
+      LocalEndpointUtilities.chatCompletionsURL(
+        baseURL: "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions"
+      )?.absoluteString,
+      "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions"
+    )
+    XCTAssertEqual(
+      LocalEndpointUtilities.chatCompletionsURL(
+        baseURL: "https://example.com/v1/chat/completions"
+      )?.absoluteString,
+      "https://example.com/v1/chat/completions"
+    )
+  }
+
+  func testUnversionedCustomPathKeepsLegacyV1Behavior() {
+    XCTAssertEqual(
+      LocalEndpointUtilities.chatCompletionsURL(baseURL: "https://example.com/gateway")?
+        .absoluteString,
+      "https://example.com/gateway/v1/chat/completions"
+    )
+    XCTAssertEqual(
+      LocalEndpointUtilities.chatCompletionsURL(baseURL: "http://localhost:11434")?
+        .absoluteString,
+      "http://localhost:11434/v1/chat/completions"
+    )
+  }
+
   func testConfigurationPreferencesRoundTripInIsolatedDefaults() throws {
     let suiteName = "OpenAICompatibleConfigurationTests.\(UUID().uuidString)"
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

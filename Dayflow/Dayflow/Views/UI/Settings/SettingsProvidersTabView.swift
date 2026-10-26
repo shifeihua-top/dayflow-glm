@@ -133,8 +133,7 @@ struct SettingsProvidersTabView: View {
     case .openAICompatible:
       SettingsRow(label: String(localized: "Preset")) {
         SettingsMetadata(
-          text: viewModel.openAICompatiblePreset == .openRouter
-            ? "OpenRouter" : String(localized: "Custom"))
+          text: viewModel.openAICompatiblePreset.presetDisplayName)
       }
       SettingsRow(label: String(localized: "Model")) {
         SettingsMetadata(
@@ -186,6 +185,9 @@ struct SettingsProvidersTabView: View {
             apiKey: $viewModel.localTestAPIKey,
             engine: viewModel.localEngine,
             showInputs: viewModel.localEngine == .custom,
+            basePlaceholder:
+              viewModel.localEngine == .custom
+              ? OpenAICompatibleConfiguration.zhipuGLMBaseURL : nil,
             onTestComplete: { success in
               viewModel.handleLocalTestCompletion(success: success)
             }
