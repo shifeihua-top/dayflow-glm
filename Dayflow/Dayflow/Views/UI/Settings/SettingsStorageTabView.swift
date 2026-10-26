@@ -173,6 +173,8 @@ struct SettingsStorageTabView: View {
           ))
         }
 
+        WebcamObservationStatusView(isEnabled: viewModel.webcamObservationEnabled)
+
         VStack(alignment: .leading, spacing: 4) {
           SettingsMetadata(
             text: String(

@@ -39,6 +39,14 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
     let presenceSummary: String?
   }
 
+  struct StatusSnapshot {
+    let running: Bool
+    let lastError: String?
+    let lastCaptureAt: Date?
+    let lastFaceCount: Int
+    let bufferedFrames: Int
+  }
+
   private let q = DispatchQueue(label: "dayflow.webcam.observer")
   private let frameQueue = DispatchQueue(label: "dayflow.webcam.frames")
 
@@ -52,6 +60,8 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
   private var running = false
   private var permissionDenied = false
   private var lastError: String?
+  private var lastCaptureAt: Date?
+  private var lastFaceCount = -1
   private var frames: [(date: Date, base64: String)] = []
   private var presence: [(date: Date, present: Bool)] = []
 
@@ -247,7 +257,8 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
 
       self.q.async { [weak self] in
         guard let self else { return }
-        self.lastFaceCountInternal = faceCount
+        self.lastCaptureAt = now
+        self.lastFaceCount = faceCount
         if let base64 {
           self.frames.append((now, base64))
         }
@@ -256,8 +267,6 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
       }
     }
   }
-
-  private var lastFaceCountInternal = -1
 
   private func trimRings(now: Date) {
     let frameCutoff = now.addingTimeInterval(-TimeInterval(Self.retentionMinutes * 60))
@@ -340,6 +349,30 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
         return nil
       }
       return SnapshotContext(frameBase64: frameBase64, presenceSummary: presenceSummary)
+    }
+  }
+
+  /// Live status for the settings UI (no frames, just counters).
+  func statusSnapshot() -> StatusSnapshot {
+    q.sync { [weak self] () -> StatusSnapshot in
+      guard let self else {
+        return StatusSnapshot(
+          running: false, lastError: nil, lastCaptureAt: nil, lastFaceCount: -1,
+          bufferedFrames: 0)
+      }
+      return StatusSnapshot(
+        running: self.running,
+        lastError: self.lastError,
+        lastCaptureAt: self.lastCaptureAt,
+        lastFaceCount: self.lastFaceCount,
+        bufferedFrames: self.frames.count)
+    }
+  }
+
+  /// The live AVCaptureSession for the settings preview layer, nil when off.
+  func previewSession() -> AVCaptureSession? {
+    q.sync { [weak self] () -> AVCaptureSession? in
+      self?.session
     }
   }
 }

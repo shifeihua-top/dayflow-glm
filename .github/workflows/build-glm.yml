@@ -50,22 +50,26 @@ jobs:
       - name: Import stable signing identity
         env:
           GLM_SIGNING_P12_BASE64: ${{ secrets.GLM_SIGNING_P12_BASE64 }}
+          GLM_SIGNING_CERT_BASE64: ${{ secrets.GLM_SIGNING_CERT_BASE64 }}
           GLM_SIGNING_PASSWORD: ${{ secrets.GLM_SIGNING_PASSWORD }}
           GLM_KEYCHAIN_PASSWORD: ${{ secrets.GLM_KEYCHAIN_PASSWORD }}
         run: |
           if [ -z "$GLM_SIGNING_P12_BASE64" ]; then
-            echo " No signing secret — will fall back to ad-hoc"
+            echo "No signing secret — will fall back to ad-hoc"
             echo "GLM_IDENTITY=-" >> "$GITHUB_ENV"
             exit 0
           fi
           echo "$GLM_SIGNING_P12_BASE64" | base64 --decode > /tmp/glm-signing.p12
+          echo "$GLM_SIGNING_CERT_BASE64" | base64 --decode > /tmp/glm-cert.pem
           security create-keychain -p "$GLM_KEYCHAIN_PASSWORD" glm.keychain
           security list-keychains -s glm.keychain $(security list-keychains | tr -d '"' | tr '\n' ' ')
           security unlock-keychain -p "$GLM_KEYCHAIN_PASSWORD" glm.keychain
           security import /tmp/glm-signing.p12 -k glm.keychain -P "$GLM_SIGNING_PASSWORD" -T /usr/bin/codesign
+          # Self-signed root: trust it for code signing so codesign accepts the identity
+          security add-trusted-cert -r trustRoot -p codeSign -k glm.keychain /tmp/glm-cert.pem
           security set-key-partition-list -S apple-tool:,apple: -s -k "$GLM_KEYCHAIN_PASSWORD" glm.keychain
           security find-identity -v -p codesigning glm.keychain
-          rm /tmp/glm-signing.p12
+          rm /tmp/glm-signing.p12 /tmp/glm-cert.pem
           echo "GLM_IDENTITY=Dayflow GLM" >> "$GITHUB_ENV"
 
       - name: Build app (code signing disabled)
