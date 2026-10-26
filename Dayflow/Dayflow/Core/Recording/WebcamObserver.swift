@@ -299,7 +299,7 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
   /// 15 minutes. Cheap: no LLM, no disk, nothing leaves memory here.
   func contextForScreenshot(at unixTimestamp: Int) -> SnapshotContext? {
     guard isEnabled else { return nil }
-    return q.sync { [weak self] -> SnapshotContext? in
+    return q.sync { [weak self] () -> SnapshotContext? in
       guard let self else { return nil }
       let date = Date(timeIntervalSince1970: TimeInterval(unixTimestamp))
 
