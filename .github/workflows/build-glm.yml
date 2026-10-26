@@ -64,7 +64,13 @@ jobs:
           security create-keychain -p "$GLM_KEYCHAIN_PASSWORD" glm.keychain
           security list-keychains -s glm.keychain $(security list-keychains | tr -d '"' | tr '\n' ' ')
           security unlock-keychain -p "$GLM_KEYCHAIN_PASSWORD" glm.keychain
-          security import /tmp/glm-signing.p12 -k glm.keychain -P "$GLM_SIGNING_PASSWORD" -T /usr/bin/codesign
+          # Corrupt/mismatched secrets must not block the release — fall back to ad-hoc.
+          if ! security import /tmp/glm-signing.p12 -k glm.keychain -P "$GLM_SIGNING_PASSWORD" -T /usr/bin/codesign; then
+            echo "::warning::p12 import failed — falling back to ad-hoc signing"
+            rm /tmp/glm-signing.p12 /tmp/glm-cert.pem
+            echo "GLM_IDENTITY=-" >> "$GITHUB_ENV"
+            exit 0
+          fi
           # Self-signed root: trust it for code signing so codesign accepts the identity
           security add-trusted-cert -r trustRoot -p codeSign -k glm.keychain /tmp/glm-cert.pem
           security set-key-partition-list -S apple-tool:,apple: -s -k "$GLM_KEYCHAIN_PASSWORD" glm.keychain
@@ -89,7 +95,12 @@ jobs:
       - name: Sign with stable identity (fallback ad-hoc)
         run: |
           APP="build/Build/Products/Release/Dayflow.app"
-          codesign --force --deep --sign "${GLM_IDENTITY:--}" "$APP"
+          if [ "${GLM_IDENTITY:--}" != "-" ] && security find-identity -v -p codesigning | grep -q "$GLM_IDENTITY"; then
+            codesign --force --deep --sign "$GLM_IDENTITY" "$APP"
+          else
+            echo "::warning::stable identity unavailable — falling back to ad-hoc"
+            codesign --force --deep --sign - "$APP"
+          fi
           codesign --verify --deep --strict "$APP" && echo "signature OK"
           codesign -dv "$APP" 2>&1 | grep -E "Authority|flags" || true
 
