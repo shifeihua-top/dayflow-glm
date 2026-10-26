@@ -25,6 +25,8 @@ final class TimelineReviewPlaybackTimelineState: ObservableObject {
 @MainActor
 final class TimelineReviewPlaybackMediaState: ObservableObject {
   @Published var currentImage: CGImage?
+  /// 摄像头画中画：与当前屏幕帧时间最近的本机摄像头帧。
+  @Published var webcamImage: CGImage?
 }
 
 @MainActor
@@ -473,6 +475,7 @@ final class TimelineReviewPlayerModel: ObservableObject {
       self.currentIndex = clamped
       self.pendingFrameIndex = nil
       self.mediaState.currentImage = image
+      self.updateWebcamPiP(index: clamped)
 
       if updateTimelineTime {
         self.internalCurrentTime = self.frameOffset(for: clamped)
@@ -480,6 +483,23 @@ final class TimelineReviewPlayerModel: ObservableObject {
       }
 
       self.frameLoader?.prefetch(after: clamped, lookahead: 1, step: step)
+    }
+  }
+
+  private var pipRequestID = 0
+
+  /// 最近的摄像头帧（±90 秒）作为画中画；异步解码，不阻塞主帧渲染。
+  private func updateWebcamPiP(index: Int) {
+    guard index < screenshots.count else { return }
+    let capturedAt = screenshots[index].capturedAt
+    pipRequestID &+= 1
+    let requestID = pipRequestID
+    DispatchQueue.global(qos: .utility).async { [weak self] in
+      let image = StorageManager.shared.loadWebcamImage(at: capturedAt)
+      DispatchQueue.main.async { [weak self] in
+        guard let self, requestID == self.pipRequestID else { return }
+        self.mediaState.webcamImage = image
+      }
     }
   }
 

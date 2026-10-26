@@ -17,7 +17,7 @@ import Sentry
 // MARK: - Configuration
 // Capture interval and resolution live in `ScreenshotConfig` (RecordingPreferences.swift).
 
-private enum InputIdleSnapshot {
+enum InputIdleSnapshot {
   // Bridge kCGAnyInputEventType into Swift without relying on a generated symbol name.
   static let anyInputEventType = CGEventType(rawValue: UInt32.max)!
 

@@ -26,7 +26,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Dayflow's optional camera observation analyzes your presence and environment to enrich your timeline. Frames stay in memory only, never touch disk, and the feature is off by default.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Dayflow listens while you talk to Flow about your plan. Audio is only used for that conversation.</string>
+	<string>Dayflow uses the microphone when you talk to Flow, and (only if you enable it) to record audio during detected camera security events. Audio stays on your Mac.</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Dayflow uses screen access to create your timeline. Recordings stay on your Mac and you can pause or delete them anytime.</string>
 	<key>PHPostHogApiKey</key>

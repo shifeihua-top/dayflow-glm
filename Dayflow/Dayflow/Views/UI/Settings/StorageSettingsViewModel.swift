@@ -23,6 +23,10 @@ final class StorageSettingsViewModel: ObservableObject {
   @Published var webcamSendFramesToLLM: Bool =
     UserDefaults.standard.object(forKey: WebcamObserver.sendToLLMKey) == nil
     ? true : UserDefaults.standard.bool(forKey: WebcamObserver.sendToLLMKey)
+  @Published var webcamSaveFrames: Bool =
+    UserDefaults.standard.object(forKey: WebcamObserver.saveFramesKey) == nil
+    ? true : UserDefaults.standard.bool(forKey: WebcamObserver.saveFramesKey)
+  @Published var webcamIntrusionAudio: Bool = WebcamObserver.shared.intrusionAudioEnabled
   /// Measured from the last hour of finalized segments; nil until enough has been recorded.
   @Published var observedBytesPerHour: Int64?
 
@@ -133,6 +137,16 @@ final class StorageSettingsViewModel: ObservableObject {
   func setWebcamSendFramesToLLM(_ enabled: Bool) {
     WebcamObserver.shared.setSendFramesToLLM(enabled)
     webcamSendFramesToLLM = enabled
+  }
+
+  func setWebcamSaveFrames(_ enabled: Bool) {
+    WebcamObserver.shared.setSaveFrames(enabled)
+    webcamSaveFrames = enabled
+  }
+
+  func setWebcamIntrusionAudio(_ enabled: Bool) {
+    WebcamObserver.shared.setIntrusionAudio(enabled)
+    webcamIntrusionAudio = enabled
   }
 
   /// "≈ 10 MB per hour · ≈ 2.5 GB per month at 8 h/day"

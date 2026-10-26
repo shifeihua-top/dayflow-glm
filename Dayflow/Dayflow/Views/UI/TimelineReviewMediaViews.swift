@@ -50,6 +50,11 @@ struct TimelineReviewCardMedia: View {
     .contentShape(Rectangle())
     .onTapGesture { onTogglePlayback() }
     .pointingHandCursor()
+    .overlay(alignment: .bottomTrailing) {
+      if playbackState.webcamImage != nil {
+        WebcamPiPOverlay(image: playbackState.webcamImage)
+      }
+    }
     .overlay(
       Rectangle().stroke(Design.mediaBorderColor, lineWidth: 1)
     )
@@ -109,5 +114,34 @@ struct TimelineReviewLayerBackedImageView: NSViewRepresentable {
 
   func updateNSView(_ nsView: TimelineReviewImageLayerHostView, context: Context) {
     nsView.updateImage(image)
+  }
+}
+
+/// 右下角摄像头画中画；点击放大/还原。
+private struct WebcamPiPOverlay: View {
+  let image: CGImage?
+  @State private var expanded = false
+
+  var body: some View {
+    Group {
+      if let image {
+        TimelineReviewLayerBackedImageView(image: image)
+      } else {
+        Color.black.opacity(0.5)
+      }
+    }
+    .frame(width: expanded ? 440 : 156, height: expanded ? 270 : 92)
+    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    .overlay(
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .stroke(Color.white.opacity(0.55), lineWidth: 1)
+    )
+    .shadow(color: .black.opacity(0.35), radius: 5)
+    .padding(10)
+    .contentShape(Rectangle())
+    .onTapGesture {
+      withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+    }
+    .help("摄像头画面（点击放大/还原）")
   }
 }

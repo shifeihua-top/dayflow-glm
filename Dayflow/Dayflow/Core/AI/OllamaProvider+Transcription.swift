@@ -53,6 +53,9 @@ extension OllamaProvider {
       if let presence = webcam?.presenceSummary {
         prompt += "\n\nOn-device sensor note: \(presence)。"
       }
+      if let intrusion = webcam?.intrusionSummary {
+        prompt += "\n\n\(intrusion)。如果事件表明有旁人，请在描述里明确指出。"
+      }
     }
 
     // Build message content with image and text
