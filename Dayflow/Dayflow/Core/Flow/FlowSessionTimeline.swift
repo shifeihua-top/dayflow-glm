@@ -309,14 +309,23 @@ final class FlowSessionTimeline: ObservableObject {
   /// The current timeline as the model last wrote it, for revision.
   func promptTimelineJSON() -> String {
     guard !entries.isEmpty else { return "[]" }
-    let rows = entries.map { entry in
-      "{\"start\":\"\(Self.clock(entry.startedAt))\",\"end\":\"\(Self.clock(entry.endedAt))\","
-        + "\"kind\":\"\(entry.kind.rawValue)\",\"title\":\(Self.jsonString(entry.title))"
-        + (entry.category.map { ",\"category\":\(Self.jsonString($0))" } ?? "")
-        + (entry.site.map { ",\"site\":\(Self.jsonString($0))" } ?? "")
-        + (entry.completedTasks.map { tasks in
-          ",\"completed\":[" + tasks.map(Self.jsonString).joined(separator: ",") + "]"
-        } ?? "") + "}"
+    // Built incrementally: one giant interpolation expression here can push
+    // the type checker past its time limit on newer toolchains.
+    let rows = entries.map { entry -> String in
+      var row =
+        "{\"start\":\"\(Self.clock(entry.startedAt))\",\"end\":\"\(Self.clock(entry.endedAt))\","
+      row += "\"kind\":\"\(entry.kind.rawValue)\",\"title\":\(Self.jsonString(entry.title))"
+      if let category = entry.category {
+        row += ",\"category\":\(Self.jsonString(category))"
+      }
+      if let site = entry.site {
+        row += ",\"site\":\(Self.jsonString(site))"
+      }
+      if let tasks = entry.completedTasks {
+        row += ",\"completed\":[" + tasks.map(Self.jsonString).joined(separator: ",") + "]"
+      }
+      row += "}"
+      return row
     }
     return "[\n" + rows.joined(separator: ",\n") + "\n]"
   }
