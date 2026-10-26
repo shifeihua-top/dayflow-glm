@@ -82,6 +82,10 @@ jobs:
           # use the admin domain (-d) with passwordless sudo instead.
           sudo security add-trusted-cert -d -r trustRoot -p codeSign /tmp/glm-cert.pem
           security set-key-partition-list -S apple-tool:,apple: -s -k "$GLM_KEYCHAIN_PASSWORD" glm.keychain
+          # set-key-partition-list re-locks the keychain — unlock again, or
+          # codesign pops an unlock dialog nobody can answer on a runner.
+          security unlock-keychain -p "$GLM_KEYCHAIN_PASSWORD" glm.keychain
+          security set-keychain-settings -lut 21600 glm.keychain
           security find-identity -v -p codesigning glm.keychain
           rm /tmp/glm-signing.p12 /tmp/glm-cert.pem
           echo "GLM_IDENTITY=Dayflow GLM" >> "$GITHUB_ENV"
