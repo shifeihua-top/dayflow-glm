@@ -23,6 +23,8 @@
 	<string>$(DAYFLOW_BACKEND_URL)</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Dayflow uses Automation to focus or reopen your agent sessions in the terminal.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dayflow's optional camera observation analyzes your presence and environment to enrich your timeline. Frames stay in memory only, never touch disk, and the feature is off by default.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Dayflow listens while you talk to Flow about your plan. Audio is only used for that conversation.</string>
 	<key>NSScreenCaptureUsageDescription</key>

@@ -63,6 +63,19 @@ final class OllamaProvider {
     return nil
   }
 
+  /// Zhipu GLM models are hybrid-thinking: glm-4.x supports turning thinking
+  /// off (required — otherwise `content` comes back empty), while glm-5.x
+  /// always thinks and only accepts an effort level. Only ever sent to
+  /// bigmodel.cn endpoints; other servers would reject the unknown field.
+  var glmThinkingParameter: ChatRequest.Thinking? {
+    guard endpoint.lowercased().contains("bigmodel.cn") else { return nil }
+    let model = savedModelId.lowercased()
+    if model.contains("glm-5") || model.contains("glm5") {
+      return .init(type: "enabled", effort: "low")
+    }
+    return .init(type: "disabled")
+  }
+
   var promptOverrides: OllamaPromptOverrides {
     guard injectedRuntimeConfiguration == nil else {
       return OllamaPromptOverrides()

@@ -12,9 +12,11 @@ extension OllamaProvider {
     let timestamp: TimeInterval  // Seconds from batch start
   }
 
-  private func getSimpleFrameDescription(_ frame: FrameData, batchId: Int64?) async -> String? {
+  private func getSimpleFrameDescription(
+    _ frame: FrameData, batchId: Int64?, webcam: WebcamObserver.SnapshotContext? = nil
+  ) async -> String? {
     // Simple prompt focused on just describing what's happening
-    let prompt = """
+    var prompt = """
       Describe what you see on this computer screen in 1-2 sentences.
       Focus on: what application/site is open, what the user is doing, and any relevant details visible.
       Be specific and factual.
@@ -36,13 +38,37 @@ extension OllamaProvider {
       return nil
     }
 
+    // Optional camera observation (experimental module): a second image of the
+    // user's surroundings plus an on-device presence summary.
+    if webcam != nil {
+      if let webcamFrame = webcam?.frameBase64 {
+        prompt += """
+
+          A second image from the user's webcam (same moment) is attached. After the screen
+          description, append one line starting with "摄像头：" describing the person's state
+          (present/posture/attention) and their environment. If the webcam image is too dark
+          or shows no one, say so briefly instead of guessing.
+          """
+      }
+      if let presence = webcam?.presenceSummary {
+        prompt += "\n\nOn-device sensor note: \(presence)。"
+      }
+    }
+
     // Build message content with image and text
-    let content: [MessageContent] = [
+    var content: [MessageContent] = [
       MessageContent(type: "text", text: prompt, image_url: nil),
       MessageContent(
         type: "image_url", text: nil,
         image_url: MessageContent.ImageURL(url: "data:image/jpeg;base64,\(base64String)")),
     ]
+
+    if let webcamFrame = webcam?.frameBase64 {
+      content.append(
+        MessageContent(
+          type: "image_url", text: nil,
+          image_url: MessageContent.ImageURL(url: "data:image/jpeg;base64,\(webcamFrame)")))
+    }
 
     let request = ChatRequest(
       model: savedModelId,
@@ -486,7 +512,10 @@ extension OllamaProvider {
         continue
       }
 
-      if let description = await getSimpleFrameDescription(frameData, batchId: batchId) {
+      let webcamContext = WebcamObserver.shared.contextForScreenshot(at: screenshot.capturedAt)
+      if let description = await getSimpleFrameDescription(
+        frameData, batchId: batchId, webcam: webcamContext)
+      {
         frameDescriptions.append((timestamp: frameData.timestamp, description: description))
       }
     }

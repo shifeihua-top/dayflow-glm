@@ -18,6 +18,11 @@ final class StorageSettingsViewModel: ObservableObject {
   @Published var pendingLimit: PendingLimit?
   @Published var captureHeight: Int = ScreenshotConfig.captureHeight
   @Published var captureInterval: TimeInterval = ScreenshotConfig.interval
+  @Published var captureAllDisplays: Bool = ScreenshotConfig.captureAllDisplays
+  @Published var webcamObservationEnabled: Bool = WebcamObserver.isConfigured
+  @Published var webcamSendFramesToLLM: Bool =
+    UserDefaults.standard.object(forKey: WebcamObserver.sendToLLMKey) == nil
+    ? true : UserDefaults.standard.bool(forKey: WebcamObserver.sendToLLMKey)
   /// Measured from the last hour of finalized segments; nil until enough has been recorded.
   @Published var observedBytesPerHour: Int64?
 
@@ -112,6 +117,22 @@ final class StorageSettingsViewModel: ObservableObject {
     ScreenshotConfig.interval = interval
     captureInterval = interval
     AnalyticsService.shared.capture("capture_interval_changed", ["interval_seconds": interval])
+  }
+
+  func setCaptureAllDisplays(_ enabled: Bool) {
+    ScreenshotConfig.captureAllDisplays = enabled
+    captureAllDisplays = enabled
+  }
+
+  func setWebcamObservationEnabled(_ enabled: Bool) {
+    WebcamObserver.shared.setEnabled(enabled)
+    webcamObservationEnabled = enabled
+    AnalyticsService.shared.capture("webcam_observation_changed", ["enabled": enabled])
+  }
+
+  func setWebcamSendFramesToLLM(_ enabled: Bool) {
+    WebcamObserver.shared.setSendFramesToLLM(enabled)
+    webcamSendFramesToLLM = enabled
   }
 
   /// "≈ 10 MB per hour · ≈ 2.5 GB per month at 8 h/day"

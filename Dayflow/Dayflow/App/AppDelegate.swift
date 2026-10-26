@@ -129,6 +129,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     AppState.shared.isRecording = false
     recorder = ScreenRecorder(autoStart: true)
 
+    // Optional experimental module; self-gates on its own setting and the
+    // recording flag (no-op unless the user enabled camera observation).
+    WebcamObserver.shared.bootstrap()
+
     // Only attempt to start recording if we're past the screen step or fully onboarded.
     if didOnboard || OnboardingStep.hasPassedScreenRecordingStep(rawValue: onboardingStep) {
       // Onboarding complete - enable persistence and restore user preference

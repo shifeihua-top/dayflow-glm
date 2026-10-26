@@ -573,6 +573,20 @@ final class ScreenRecorder: NSObject, @unchecked Sendable {
         return .succeeded
       }
 
+      // Multi-display mode: composite every connected display into one frame.
+      if ScreenshotConfig.captureAllDisplays,
+        let content = cachedContent, content.displays.count > 1
+      {
+        let compositeOutcome = try await captureAllDisplaysComposite(
+          displays: content.displays,
+          captureTime: captureTime,
+          idleSecondsAtCapture: idleSecondsAtCapture
+        )
+        if let outcome = compositeOutcome {
+          return outcome
+        }
+      }
+
       // 1. Create content filter for the display
       let excludedApplications =
         cachedContent.map {
@@ -623,6 +637,93 @@ final class ScreenRecorder: NSObject, @unchecked Sendable {
       monitor.recordFailure(error, source: .recorderCapture)
       return .captureKitFailed(error)
     }
+  }
+
+  /// Captures every connected display and composites them side by side, ordered
+  /// by physical position (origin.x, then origin.y), so the layout stays stable
+  /// across ticks and the vision model reads it as one wide desk. A display that
+  /// fails to capture is skipped; if none succeed the error propagates.
+  private func captureAllDisplaysComposite(
+    displays: [SCDisplay],
+    captureTime: Date,
+    idleSecondsAtCapture: Int?
+  ) async throws -> CaptureOutcome? {
+    let excludedApplications =
+      cachedContent.map {
+        RecordingPrivacyPreferences.blockedScreenCaptureApplications(in: $0)
+      } ?? []
+    let ordered = displays.sorted {
+      ($0.frame.origin.x, $0.frame.origin.y) < ($1.frame.origin.x, $1.frame.origin.y)
+    }
+
+    var tiles: [CGImage] = []
+    for display in ordered {
+      do {
+        let filter =
+          excludedApplications.isEmpty
+          ? SCContentFilter(display: display, excludingWindows: [])
+          : SCContentFilter(
+            display: display,
+            excludingApplications: excludedApplications,
+            exceptingWindows: []
+          )
+        let size = scaledCaptureSize(for: display)
+        let config = SCStreamConfiguration()
+        config.width = size.width
+        config.height = size.height
+        config.scalesToFit = true
+        config.showsCursor = true
+        monitor.recordRequest(.screenshot, source: .recorderCapture)
+        let image = try await SCScreenshotManager.captureImage(
+          contentFilter: filter,
+          configuration: config
+        )
+        tiles.append(image)
+      } catch {
+        dbg("composite: display \(display.displayID) failed – \(error.localizedDescription)")
+      }
+    }
+
+    guard !tiles.isEmpty else {
+      throw ScreenRecorderError.noDisplay
+    }
+    guard tiles.count > 1 else {
+      try appendFrame(
+        tiles[0], capturedAt: captureTime, idleSecondsAtCapture: idleSecondsAtCapture)
+      return .succeeded
+    }
+
+    let composite = Self.compositeHorizontally(tiles)
+    try appendFrame(composite, capturedAt: captureTime, idleSecondsAtCapture: idleSecondsAtCapture)
+    dbg(
+      "📸 Composite frame appended (\(composite.width)x\(composite.height), \(tiles.count) displays)"
+    )
+    return .succeeded
+  }
+
+  private static func compositeHorizontally(_ images: [CGImage]) -> CGImage {
+    let height = images.map(\.height).max() ?? 0
+    let scaledWidths = images.map { Int((CGFloat($0.width) * CGFloat(height) / CGFloat($0.height)).rounded()) }
+    let totalWidth = scaledWidths.reduce(0, +)
+    guard
+      let context = CGContext(
+        data: nil,
+        width: totalWidth,
+        height: height,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+      )
+    else {
+      return images[0]
+    }
+    var x = 0
+    for (image, width) in zip(images, scaledWidths) {
+      context.draw(image, in: CGRect(x: x, y: 0, width: width, height: height))
+      x += width
+    }
+    return context.makeImage() ?? images[0]
   }
 
   /// Re-checks state right before writing so a capture that was in flight during

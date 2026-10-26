@@ -7,6 +7,7 @@ struct SettingsStorageTabView: View {
     VStack(alignment: .leading, spacing: SettingsStyle.sectionSpacing) {
       recordingStatusSection
       recordingQualitySection
+      webcamObservationSection
       diskUsageSection
     }
     .alert(isPresented: $viewModel.showLimitConfirmation) {
@@ -110,7 +111,7 @@ struct SettingsStorageTabView: View {
 
         SettingsRow(
           label: String(localized: "Capture frequency"),
-          subtitle: String(localized: "How often a frame is taken"), showsDivider: false
+          subtitle: String(localized: "How often a frame is taken")
         ) {
           settingsMenu(
             selected: ScreenshotConfig.label(forInterval: viewModel.captureInterval),
@@ -121,11 +122,62 @@ struct SettingsStorageTabView: View {
           )
         }
 
+        SettingsRow(
+          label: String(localized: "Capture all displays"),
+          subtitle: String(localized: "Multi-monitor: record every screen in one frame (uses more storage and analysis cost)"),
+          showsDivider: false
+        ) {
+          SettingsToggle(isOn: Binding(
+            get: { viewModel.captureAllDisplays },
+            set: { viewModel.setCaptureAllDisplays($0) }
+          ))
+        }
+
         VStack(alignment: .leading, spacing: 4) {
           SettingsMetadata(text: viewModel.recordingEstimateText())
           if let observed = viewModel.observedRateText() {
             SettingsMetadata(text: observed)
           }
+        }
+        .padding(.top, 18)
+      }
+    }
+  }
+
+  // MARK: - Webcam observation (experimental)
+
+  private var webcamObservationSection: some View {
+    SettingsSection(
+      title: String(localized: "摄像头观察（实验性）"),
+      subtitle: String(localized: "结合摄像头画面分析个人状态与环境，融入时间线卡片。")
+    ) {
+      VStack(alignment: .leading, spacing: 0) {
+        SettingsRow(
+          label: String(localized: "启用摄像头观察"),
+          subtitle: String(localized: "每分钟采样一次，检测是否在电脑前；需要摄像头权限")
+        ) {
+          SettingsToggle(isOn: Binding(
+            get: { viewModel.webcamObservationEnabled },
+            set: { viewModel.setWebcamObservationEnabled($0) }
+          ))
+        }
+
+        SettingsRow(
+          label: String(localized: "发送画面给分析模型"),
+          subtitle: String(localized: "关闭后仅使用本机的人脸检测（零成本），不向云端发送任何摄像头画面"),
+          showsDivider: false
+        ) {
+          SettingsToggle(isOn: Binding(
+            get: { viewModel.webcamSendFramesToLLM && viewModel.webcamObservationEnabled },
+            set: { viewModel.setWebcamSendFramesToLLM($0) }
+          ))
+        }
+
+        VStack(alignment: .leading, spacing: 4) {
+          SettingsMetadata(
+            text: String(
+              localized: "隐私：摄像头画面仅保存在内存中约 20 分钟用于回顾分析，绝不写入磁盘或日志。"
+            ))
         }
         .padding(.top, 18)
       }

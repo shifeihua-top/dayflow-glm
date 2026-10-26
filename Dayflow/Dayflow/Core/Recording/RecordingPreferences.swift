@@ -4,6 +4,7 @@ import Foundation
 enum ScreenshotConfig {
   static let intervalKey = "screenshotIntervalSeconds"
   static let captureHeightKey = "captureHeightPixels"
+  static let captureAllDisplaysKey = "captureAllDisplays"
 
   /// Posted on the main queue whenever a capture preference changes.
   static let didChange = Notification.Name("ScreenshotConfigDidChange")
@@ -34,6 +35,17 @@ enum ScreenshotConfig {
     }
     set {
       UserDefaults.standard.set(newValue, forKey: captureHeightKey)
+      postChange()
+    }
+  }
+
+  /// When true, every tick captures all connected displays and composites them
+  /// side by side (in spatial left-to-right order) into one frame. Doubles-ish
+  /// the vision token cost per tick on multi-monitor setups, so it is opt-in.
+  static var captureAllDisplays: Bool {
+    get { UserDefaults.standard.bool(forKey: captureAllDisplaysKey) }
+    set {
+      UserDefaults.standard.set(newValue, forKey: captureAllDisplaysKey)
       postChange()
     }
   }

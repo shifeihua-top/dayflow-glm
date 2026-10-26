@@ -13,9 +13,17 @@ extension OllamaProvider {
     var max_tokens: Int = 4000
     var stream: Bool = false
     var reasoning: Reasoning? = nil
+    // Zhipu GLM hybrid-thinking switch. Encoded only when non-nil, so other
+    // OpenAI-compatible servers never see the extra field.
+    var thinking: Thinking? = nil
 
     struct Reasoning: Codable {
       let effort: String
+    }
+
+    struct Thinking: Codable {
+      let type: String  // "disabled" or "enabled"
+      var effort: String? = nil  // glm-5.x: "low" | "high" | "max"
     }
   }
 
@@ -56,6 +64,13 @@ extension OllamaProvider {
       throw NSError(
         domain: "OllamaProvider", code: 15,
         userInfo: [NSLocalizedDescriptionKey: "Invalid local endpoint URL"])
+    }
+
+    // GLM hybrid-thinking control is injected in one place so every call path
+    // (frame description, summaries, recaps) gets it consistently.
+    var request = request
+    if request.thinking == nil {
+      request.thinking = glmThinkingParameter
     }
 
     var urlRequest = URLRequest(url: resolvedURL)
