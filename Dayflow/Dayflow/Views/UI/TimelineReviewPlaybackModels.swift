@@ -359,6 +359,7 @@ final class TimelineReviewPlayerModel: ObservableObject {
       : TimelineReviewFrameLoader(
         screenshots: screenshots, targetSize: CGSize(width: 340, height: 220))
 
+    currentScreenshotTimestamps = screenshots.map(\.capturedAt)
     if let firstCapture = screenshots.first?.capturedAt {
       frameOffsets = screenshots.map { Double(max(0, $0.capturedAt - firstCapture)) }
     } else {
@@ -487,11 +488,13 @@ final class TimelineReviewPlayerModel: ObservableObject {
   }
 
   private var pipRequestID = 0
+  /// 当前活动各帧的绝对时间戳（Unix 秒），供摄像头画中画就近取帧。
+  private var currentScreenshotTimestamps: [Int] = []
 
   /// 最近的摄像头帧（±90 秒）作为画中画；异步解码，不阻塞主帧渲染。
   private func updateWebcamPiP(index: Int) {
-    guard index < screenshots.count else { return }
-    let capturedAt = screenshots[index].capturedAt
+    guard index < currentScreenshotTimestamps.count else { return }
+    let capturedAt = currentScreenshotTimestamps[index]
     pipRequestID &+= 1
     let requestID = pipRequestID
     DispatchQueue.global(qos: .utility).async { [weak self] in
