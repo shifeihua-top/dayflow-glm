@@ -17,6 +17,7 @@
 //
 
 import AVFoundation
+import AppKit
 import Combine
 import CoreMedia
 import Vision

@@ -28,11 +28,11 @@ struct WebcamEventRow {
 }
 
 extension StorageManager {
-  private static let webcamSchemaKey = "webcamSchemaInstalled"
+  private static var webcamSchemaInstalled = false
 
   /// Idempotent: cheap after the first call in this process.
   func ensureWebcamSchema() {
-    guard objc_getAssociatedObject(self, &Self.webcamSchemaKey) == nil else { return }
+    guard !Self.webcamSchemaInstalled else { return }
     try? timedWrite("ensureWebcamSchema") { db in
       try db.execute(
         sql: """
@@ -56,7 +56,7 @@ extension StorageManager {
               CREATE INDEX IF NOT EXISTS idx_webcam_events_time ON webcam_events(start_ts);
         """)
     }
-    objc_setAssociatedObject(self, &Self.webcamSchemaKey, NSObject(), .OBJC_ASSOCIATION_RETAIN)
+    Self.webcamSchemaInstalled = true
   }
 
   // MARK: - Paths
@@ -186,7 +186,7 @@ extension StorageManager {
     var removed = 0
 
     let framePaths: [String] = (try? timedRead("purgeWebcamFramePaths") { db in
-      String.fetchAll(
+      try String.fetchAll(
         db, sql: "SELECT file_path FROM webcam_frames WHERE captured_at < ?", arguments: [cutoff])
     }) ?? []
     for path in framePaths {
@@ -198,7 +198,7 @@ extension StorageManager {
     }
 
     let audioPaths: [String] = (try? timedRead("purgeWebcamAudioPaths") { db in
-      String.fetchAll(
+      try String.fetchAll(
         db,
         sql: """
               SELECT audio_path FROM webcam_events
