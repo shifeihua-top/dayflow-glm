@@ -121,6 +121,12 @@ extension OllamaProvider {
 
       \(promptSections.summary)
 
+      PERSONAL STATE (from camera observations)
+      Some observation lines start with "摄像头：". When present, aggregate them into a short
+      personal-state note at the end of the summary covering: 工作与静坐时长对比, 休息次数,
+      喝水时刻, and 精神状态变化趋势. Keep it to 1-2 sentences, prefix it with "个人状态：".
+      If no camera lines exist, omit this note entirely.
+
       CATEGORIES:
       Choose exactly one:
       \(categoriesSection)

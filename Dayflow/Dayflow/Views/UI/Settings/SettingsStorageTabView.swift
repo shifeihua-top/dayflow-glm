@@ -174,7 +174,7 @@ struct SettingsStorageTabView: View {
 
         SettingsRow(
           label: String(localized: "保存画面到本地（回放可见）"),
-          subtitle: String(localized: "回放时右下角显示对应时刻的摄像头画面；保留 7 天后自动清理")
+          subtitle: String(localized: "回放时右下角显示对应时刻的摄像头画面；保留 30 天后自动清理")
         ) {
           SettingsToggle(isOn: Binding(
             get: { viewModel.webcamSaveFrames },
@@ -198,7 +198,7 @@ struct SettingsStorageTabView: View {
         VStack(alignment: .leading, spacing: 4) {
           SettingsMetadata(
             text: String(
-              localized: "隐私：开启「保存画面」后，低分辨率摄像头画面仅存本机并保留 7 天；关闭则只驻留内存。录音仅在安全事件期间进行，且只保存在这台 Mac 上。"
+              localized: "隐私：开启「保存画面」后，低分辨率摄像头画面仅存本机并保留 30 天（安全事件录音仅保留 7 天）；关闭则只驻留内存。所有数据只保存在这台 Mac 上。"
             ))
         }
         .padding(.top, 18)

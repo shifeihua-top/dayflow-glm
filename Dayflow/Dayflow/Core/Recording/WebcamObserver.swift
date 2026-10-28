@@ -33,7 +33,8 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
   static let intrusionAudioKey = "webcamIntrusionAudioRecording"
   static let retentionMinutes = 20
   static let presenceRetentionMinutes = 60
-  static let diskRetentionDays = 7
+  static let frameRetentionDays = 30
+  static let audioRetentionDays = 7
   /// 帧丢弃数量：等自动曝光/白平衡收敛
   static let warmupFrames = 45
   /// 主人离开判定（秒）：此后仍检测到人脸 → 疑似旁人操作
@@ -267,7 +268,8 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
     let purge = DispatchSource.makeTimerSource(queue: q)
     purge.schedule(deadline: .now() + 60, repeating: 6 * 3600)
     purge.setEventHandler { [weak self] in
-      StorageManager.shared.purgeWebcamData(olderThanDays: Self.diskRetentionDays)
+      StorageManager.shared.purgeWebcamData(
+        frameDays: Self.frameRetentionDays, audioDays: Self.audioRetentionDays)
     }
     purge.resume()
     purgeTimer = purge

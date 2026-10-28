@@ -45,9 +45,11 @@ extension OllamaProvider {
         prompt += """
 
           A second image from the user's webcam (same moment) is attached. After the screen
-          description, append one line starting with "摄像头：" describing the person's state
-          (present/posture/attention) and their environment. If the webcam image is too dark
-          or shows no one, say so briefly instead of guessing.
+          description, append one line starting with "摄像头：" in exactly this format:
+          摄像头：活动=<工作|休息|喝水|交谈|离开|其他>；精神状态=<专注|正常|疲惫|紧张>；姿态与环境=<一句话>
+          Judge from posture, gaze and visible objects (e.g. holding a cup = 喝水；靠椅伸展 = 休息).
+          If the webcam image is too dark or shows no one, output
+          摄像头：活动=<离开或不可见>；精神状态=<未知>；姿态与环境=<原因>。
           """
       }
       if let presence = webcam?.presenceSummary {

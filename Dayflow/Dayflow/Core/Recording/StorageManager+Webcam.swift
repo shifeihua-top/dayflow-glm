@@ -178,11 +178,13 @@ extension StorageManager {
 
   // MARK: - Retention
 
-  /// Deletes webcam frame files/rows and finished audio files older than the cap.
+  /// Deletes webcam frame files/rows past the frame cap and audio files past the
+  /// (shorter) audio cap. Event rows themselves follow the frame retention.
   @discardableResult
-  func purgeWebcamData(olderThanDays days: Int) -> Int {
+  func purgeWebcamData(frameDays: Int, audioDays: Int) -> Int {
     ensureWebcamSchema()
-    let cutoff = Int(Date().addingTimeInterval(-TimeInterval(days * 24 * 3600)).timeIntervalSince1970)
+    let cutoff = Int(Date().addingTimeInterval(-TimeInterval(frameDays * 24 * 3600)).timeIntervalSince1970)
+    let audioCutoff = Int(Date().addingTimeInterval(-TimeInterval(audioDays * 24 * 3600)).timeIntervalSince1970)
     var removed = 0
 
     let framePaths: [String] = (try? timedRead("purgeWebcamFramePaths") { db in
@@ -204,14 +206,15 @@ extension StorageManager {
               SELECT audio_path FROM webcam_events
               WHERE end_ts IS NOT NULL AND end_ts < ? AND audio_path IS NOT NULL
         """,
-        arguments: [cutoff])
+        arguments: [audioCutoff])
     }) ?? []
     for path in audioPaths {
       try? FileManager.default.removeItem(atPath: path)
     }
     try? timedWrite("purgeWebcamEvents") { db in
       try db.execute(
-        sql: "DELETE FROM webcam_events WHERE end_ts IS NOT NULL AND end_ts < ?", arguments: [cutoff])
+        sql: "DELETE FROM webcam_events WHERE end_ts IS NOT NULL AND end_ts < ?",
+        arguments: [cutoff])
     }
     return removed
   }
