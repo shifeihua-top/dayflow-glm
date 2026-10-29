@@ -132,5 +132,5 @@ jobs:
           name: dayflow-glm-macos
           path: |
             *.dmg
-            *.app.zip
           if-no-files-found: error
+          retention-days: 7
