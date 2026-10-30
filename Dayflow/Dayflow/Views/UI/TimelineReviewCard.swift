@@ -46,6 +46,27 @@ struct TimelineReviewCard: View {
     _legacyPlayerModel = StateObject(wrappedValue: TimelineReviewLegacyPlayerModel())
   }
 
+  @State private var lastWebcamPiPTimestamp = 0
+
+  /// 视频回放时同步摄像头画中画：播放秒数 + 活动开始时刻 = 墙钟时间戳 → 就近摄像头帧。
+  private func installWebcamPiPSync() {
+    legacyPlayerModel.onVideoTime = { [weak self] seconds in
+      guard let self else { return }
+      let timestamp = Int(
+        self.activity.startTime.addingTimeInterval(seconds).timeIntervalSince1970)
+      guard abs(timestamp - self.lastWebcamPiPTimestamp) >= 30 else { return }
+      self.lastWebcamPiPTimestamp = timestamp
+      let token = timestamp
+      DispatchQueue.global(qos: .utility).async { [weak self] in
+        let image = StorageManager.shared.loadWebcamImage(at: token)
+        DispatchQueue.main.async { [weak self] in
+          guard let self, self.lastWebcamPiPTimestamp == token else { return }
+          self.playerModel.mediaState.webcamImage = image
+        }
+      }
+    }
+  }
+
   var body: some View {
     ZStack(alignment: .top) {
       RoundedRectangle(cornerRadius: 8)
@@ -62,6 +83,12 @@ struct TimelineReviewCard: View {
             togglePlayback()
           }
         )
+        .onAppear {
+          if usingVideoPlayer { installWebcamPiPSync() }
+        }
+        .onChange(of: usingVideoPlayer) { _, usingVideo in
+          if usingVideo { installWebcamPiPSync() }
+        }
         .frame(height: Design.mediaHeight)
         .overlay(alignment: .bottom) {
           TimelineReviewPlaybackTimeline(

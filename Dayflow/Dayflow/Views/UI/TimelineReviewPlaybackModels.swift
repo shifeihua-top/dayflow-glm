@@ -36,6 +36,7 @@ final class TimelineReviewLegacyPlayerModel: ObservableObject {
   private static let speedDefaultsKey = "timelineReviewPlaybackSpeedMultiplier"
   let speedOptions: [Float] = [1.0, 2.0, 3.0, 6.0]
 
+  var onVideoTime: ((Double) -> Void)?
   var player: AVPlayer?
   private var timeObserver: Any?
   private var endObserver: Any?
@@ -149,7 +150,9 @@ final class TimelineReviewLegacyPlayerModel: ObservableObject {
     // Callbacks from AVPlayer directly to main thread triggers the native property update cleanly
     timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) {
       [weak self] time in
-      self?.timelineState.currentTime = CMTimeGetSeconds(time)
+      let seconds = CMTimeGetSeconds(time)
+      self?.timelineState.currentTime = seconds
+      self?.onVideoTime?(seconds)
     }
   }
 

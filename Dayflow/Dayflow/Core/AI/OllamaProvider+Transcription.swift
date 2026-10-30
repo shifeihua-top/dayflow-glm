@@ -522,6 +522,14 @@ extension OllamaProvider {
         frameData, batchId: batchId, webcam: webcamContext)
       {
         frameDescriptions.append((timestamp: frameData.timestamp, description: description))
+        if webcamContext?.frameBase64 != nil,
+          let camLine = description
+            .components(separatedBy: "\n")
+            .first(where: { $0.contains("摄像头：") })
+        {
+          StorageManager.shared.updateWebcamFrameState(
+            nearestTo: screenshot.capturedAt, stateLine: camLine)
+        }
       }
     }
 

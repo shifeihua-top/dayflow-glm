@@ -268,8 +268,8 @@ final class WebcamObserver: NSObject, @unchecked Sendable {
     let purge = DispatchSource.makeTimerSource(queue: q)
     purge.schedule(deadline: .now() + 60, repeating: 6 * 3600)
     purge.setEventHandler { [weak self] in
-      StorageManager.shared.purgeWebcamData(
-        frameDays: Self.frameRetentionDays, audioDays: Self.audioRetentionDays)
+      // 画面帧持续保存直到手工清除；仅录音按 7 天自动清理。
+      StorageManager.shared.purgeWebcamAudio(audioDays: Self.audioRetentionDays)
     }
     purge.resume()
     purgeTimer = purge

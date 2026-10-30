@@ -27,6 +27,8 @@ final class StorageSettingsViewModel: ObservableObject {
     UserDefaults.standard.object(forKey: WebcamObserver.saveFramesKey) == nil
     ? true : UserDefaults.standard.bool(forKey: WebcamObserver.saveFramesKey)
   @Published var webcamIntrusionAudio: Bool = WebcamObserver.shared.intrusionAudioEnabled
+  @Published var showWebcamDailyReport = false
+  @Published var webcamDiskUsageText = ""
   /// Measured from the last hour of finalized segments; nil until enough has been recorded.
   @Published var observedBytesPerHour: Int64?
 
@@ -45,6 +47,7 @@ final class StorageSettingsViewModel: ObservableObject {
     timelapsesLimitBytes = timelapseLimit
     recordingsLimitIndex = Self.indexForLimit(recordingsLimit)
     timelapsesLimitIndex = Self.indexForLimit(timelapseLimit)
+    refreshWebcamDiskUsage()
   }
 
   func refreshStorageIfNeeded(isStorageTab: Bool) {
@@ -147,6 +150,18 @@ final class StorageSettingsViewModel: ObservableObject {
   func setWebcamIntrusionAudio(_ enabled: Bool) {
     WebcamObserver.shared.setIntrusionAudio(enabled)
     webcamIntrusionAudio = enabled
+  }
+
+  func refreshWebcamDiskUsage() {
+    let bytes = StorageManager.shared.webcamDiskUsageBytes()
+    webcamDiskUsageText =
+        "已占用 " + usageFormatter.string(fromByteCount: bytes) + "（持续保存，直到手工清除）"
+  }
+
+  func clearWebcamFrames() {
+    let removed = StorageManager.shared.purgeAllWebcamFrames()
+    refreshWebcamDiskUsage()
+    AnalyticsService.shared.capture("webcam_frames_cleared", ["removed": removed])
   }
 
   /// "≈ 10 MB per hour · ≈ 2.5 GB per month at 8 h/day"

@@ -16,6 +16,7 @@ struct WebcamFrameRow {
   let capturedAt: Int
   let filePath: String
   let faceCount: Int
+  let state: String?
 }
 
 struct WebcamEventRow {
@@ -55,6 +56,7 @@ extension StorageManager {
               );
               CREATE INDEX IF NOT EXISTS idx_webcam_events_time ON webcam_events(start_ts);
         """)
+      try? db.execute(sql: "ALTER TABLE webcam_frames ADD COLUMN state TEXT")
     }
     Self.webcamSchemaInstalled = true
   }
@@ -109,7 +111,7 @@ extension StorageManager {
       let row = try Row.fetchOne(
         db,
         sql: """
-              SELECT id, captured_at, file_path, face_count FROM webcam_frames
+              SELECT id, captured_at, file_path, face_count, state FROM webcam_frames
               WHERE captured_at BETWEEN ? AND ?
               ORDER BY ABS(captured_at - ?) LIMIT 1
         """,
@@ -119,7 +121,8 @@ extension StorageManager {
         id: row["id"] as Int64? ?? 0,
         capturedAt: row["captured_at"] as Int? ?? 0,
         filePath: row["file_path"] as String? ?? "",
-        faceCount: row["face_count"] as Int? ?? 0)
+        faceCount: row["face_count"] as Int? ?? 0,
+        state: row["state"] as String?)
     }
   }
 
@@ -178,27 +181,12 @@ extension StorageManager {
 
   // MARK: - Retention
 
-  /// Deletes webcam frame files/rows past the frame cap and audio files past the
-  /// (shorter) audio cap. Event rows themselves follow the frame retention.
+  /// 仅清理过期录音文件（画面帧持续保存，直到在设置里手工清除）。
   @discardableResult
-  func purgeWebcamData(frameDays: Int, audioDays: Int) -> Int {
+  func purgeWebcamAudio(audioDays: Int) -> Int {
     ensureWebcamSchema()
-    let cutoff = Int(Date().addingTimeInterval(-TimeInterval(frameDays * 24 * 3600)).timeIntervalSince1970)
-    let audioCutoff = Int(Date().addingTimeInterval(-TimeInterval(audioDays * 24 * 3600)).timeIntervalSince1970)
-    var removed = 0
-
-    let framePaths: [String] = (try? timedRead("purgeWebcamFramePaths") { db in
-      try String.fetchAll(
-        db, sql: "SELECT file_path FROM webcam_frames WHERE captured_at < ?", arguments: [cutoff])
-    }) ?? []
-    for path in framePaths {
-      try? FileManager.default.removeItem(atPath: path)
-      removed += 1
-    }
-    try? timedWrite("purgeWebcamFrames") { db in
-      try db.execute(sql: "DELETE FROM webcam_frames WHERE captured_at < ?", arguments: [cutoff])
-    }
-
+    let audioCutoff = Int(
+      Date().addingTimeInterval(-TimeInterval(audioDays * 24 * 3600)).timeIntervalSince1970)
     let audioPaths: [String] = (try? timedRead("purgeWebcamAudioPaths") { db in
       try String.fetchAll(
         db,
@@ -211,11 +199,123 @@ extension StorageManager {
     for path in audioPaths {
       try? FileManager.default.removeItem(atPath: path)
     }
-    try? timedWrite("purgeWebcamEvents") { db in
-      try db.execute(
-        sql: "DELETE FROM webcam_events WHERE end_ts IS NOT NULL AND end_ts < ?",
-        arguments: [cutoff])
+    return audioPaths.count
+  }
+
+  /// 手工清除：删除全部已保存画面帧（安全事件记录保留）。
+  @discardableResult
+  func purgeAllWebcamFrames() -> Int {
+    ensureWebcamSchema()
+    let framePaths: [String] = (try? timedRead("allWebcamFramePaths") { db in
+      try String.fetchAll(db, sql: "SELECT file_path FROM webcam_frames")
+    }) ?? []
+    for path in framePaths {
+      try? FileManager.default.removeItem(atPath: path)
     }
-    return removed
+    try? timedWrite("purgeAllWebcamFrames") { db in
+      try db.execute(sql: "DELETE FROM webcam_frames")
+    }
+    return framePaths.count
+  }
+
+  /// 摄像头相关目录磁盘占用（字节）。
+  func webcamDiskUsageBytes() -> Int64 {
+    let dirs = [root.appendingPathComponent("webcam"), webcamAudioDirectory()]
+    var total: Int64 = 0
+    let fm = FileManager.default
+    for dir in dirs {
+      guard
+        let enumerator = fm.enumerator(
+          at: dir, includingPropertiesForKeys: [.fileSizeKey])
+      else { continue }
+      for case let url as URL in enumerator {
+        if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+          total += Int64(size)
+        }
+      }
+    }
+    return total
+  }
+
+  // MARK: - 状态回写与每日统计
+
+  /// 转录完成后把「摄像头：…」状态行回写到时间上最近的一帧。
+  func updateWebcamFrameState(nearestTo timestamp: Int, stateLine: String) {
+    ensureWebcamSchema()
+    try? timedWrite("updateWebcamFrameState") { db in
+      try db.execute(
+        sql: """
+              UPDATE webcam_frames SET state = ? WHERE id = (
+                  SELECT id FROM webcam_frames
+                  WHERE captured_at BETWEEN ? AND ?
+                  ORDER BY ABS(captured_at - ?) LIMIT 1
+              )
+        """,
+        arguments: [stateLine, timestamp - 120, timestamp + 120, timestamp])
+    }
+  }
+
+  struct WebcamDailyStats {
+    var frameCount = 0
+    var presentFrames = 0
+    var sittingMinutes = 0
+    var restMinutes = 0
+    var drinkingEpisodes = 0
+    var awayFrames = 0
+    var moodCounts: [(String, Int)] = []
+    var busyByHour: [(Int, Int)] = []
+  }
+
+  /// 每日个人状态统计。帧采样间隔 60 秒：在场帧数≈在场分钟数；
+  /// 活动分类取自转录回写的 state 行；喝水次数按连续段计一次。
+  func webcamDailyStats(forDay dayStart: Date) -> WebcamDailyStats {
+    ensureWebcamSchema()
+    var stats = WebcamDailyStats()
+    let start = Int(dayStart.timeIntervalSince1970)
+    let end = start + 24 * 3600
+    let rows = (try? timedRead("webcamDailyStats") { db in
+      let r = try Row.fetchAll(
+        db,
+        sql: """
+              SELECT captured_at, face_count, state FROM webcam_frames
+              WHERE captured_at >= ? AND captured_at < ? ORDER BY captured_at
+        """,
+        arguments: [start, end])
+      return r.map { row in
+        (
+          ts: row["captured_at"] as Int? ?? 0,
+          faces: row["face_count"] as Int? ?? 0,
+          state: row["state"] as String? ?? ""
+        )
+      }
+    }) ?? []
+
+    stats.frameCount = rows.count
+    var prevDrinking = false
+    var moodTally: [String: Int] = [:]
+    var hourTally: [Int: Int] = [:]
+
+    for row in rows {
+      if row.faces >= 1 {
+        stats.presentFrames += 1
+        let hour = (row.ts % 86400) / 3600
+        hourTally[hour, default: 0] += 1
+      } else {
+        stats.awayFrames += 1
+      }
+      let state = row.state
+      let drinking = state.contains("喝水")
+      if drinking { stats.drinkingEpisodes += (prevDrinking ? 0 : 1) }
+      prevDrinking = drinking
+      if state.contains("活动=工作") || state.contains("活动=交谈") { stats.sittingMinutes += 1 }
+      if state.contains("活动=休息") { stats.restMinutes += 1 }
+      for mood in ["专注", "正常", "疲惫", "紧张"] where state.contains("精神状态=" + mood) {
+        moodTally[mood, default: 0] += 1
+      }
+    }
+
+    stats.moodCounts = moodTally.sorted { $0.value > $1.value }
+    stats.busyByHour = hourTally.sorted { $0.key < $1.key }
+    return stats
   }
 }
