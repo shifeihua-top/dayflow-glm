@@ -50,18 +50,18 @@ struct TimelineReviewCard: View {
 
   /// 视频回放时同步摄像头画中画：播放秒数 + 活动开始时刻 = 墙钟时间戳 → 就近摄像头帧。
   private func installWebcamPiPSync() {
-    legacyPlayerModel.onVideoTime = { [weak self] seconds in
-      guard let self else { return }
-      let timestamp = Int(
-        self.activity.startTime.addingTimeInterval(seconds).timeIntervalSince1970)
-      guard abs(timestamp - self.lastWebcamPiPTimestamp) >= 30 else { return }
-      self.lastWebcamPiPTimestamp = timestamp
+    let mediaState = playerModel.mediaState
+    let activityStart = activity.startTime
+    legacyPlayerModel.onVideoTime = { seconds in
+      let timestamp = Int(activityStart.addingTimeInterval(seconds).timeIntervalSince1970)
+      guard abs(timestamp - lastWebcamPiPTimestamp) >= 30 else { return }
+      lastWebcamPiPTimestamp = timestamp
       let token = timestamp
-      DispatchQueue.global(qos: .utility).async { [weak self] in
+      DispatchQueue.global(qos: .utility).async {
         let image = StorageManager.shared.loadWebcamImage(at: token)
-        DispatchQueue.main.async { [weak self] in
-          guard let self, self.lastWebcamPiPTimestamp == token else { return }
-          self.playerModel.mediaState.webcamImage = image
+        Task { @MainActor in
+          guard token == lastWebcamPiPTimestamp else { return }
+          mediaState.webcamImage = image
         }
       }
     }

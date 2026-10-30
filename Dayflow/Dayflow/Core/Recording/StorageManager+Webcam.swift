@@ -273,7 +273,10 @@ extension StorageManager {
     var stats = WebcamDailyStats()
     let start = Int(dayStart.timeIntervalSince1970)
     let end = start + 24 * 3600
-    let rows = (try? timedRead("webcamDailyStats") { db in
+    var timestamps: [Int] = []
+    var faceCounts: [Int] = []
+    var states: [String] = []
+    _ = try? timedRead("webcamDailyStats") { db in
       let r = try Row.fetchAll(
         db,
         sql: """
@@ -281,29 +284,29 @@ extension StorageManager {
               WHERE captured_at >= ? AND captured_at < ? ORDER BY captured_at
         """,
         arguments: [start, end])
-      return r.map { row in
-        (
-          ts: row["captured_at"] as Int? ?? 0,
-          faces: row["face_count"] as Int? ?? 0,
-          state: row["state"] as String? ?? ""
-        )
+      for row in r {
+        timestamps.append(row["captured_at"] as Int? ?? 0)
+        faceCounts.append(row["face_count"] as Int? ?? 0)
+        states.append(row["state"] as String? ?? "")
       }
-    }) ?? []
+      return true
+    }
 
-    stats.frameCount = rows.count
+    stats.frameCount = timestamps.count
     var prevDrinking = false
     var moodTally: [String: Int] = [:]
     var hourTally: [Int: Int] = [:]
 
-    for row in rows {
-      if row.faces >= 1 {
+    for index in timestamps.indices {
+      let faces = faceCounts[index]
+      let state = states[index]
+      if faces >= 1 {
         stats.presentFrames += 1
-        let hour = (row.ts % 86400) / 3600
+        let hour = (timestamps[index] % 86400) / 3600
         hourTally[hour, default: 0] += 1
       } else {
         stats.awayFrames += 1
       }
-      let state = row.state
       let drinking = state.contains("喝水")
       if drinking { stats.drinkingEpisodes += (prevDrinking ? 0 : 1) }
       prevDrinking = drinking

@@ -531,6 +531,8 @@ extension StorageManager {
         ])
         if values.isDirectory == true { continue }
         if fileURL.path == activeSegmentPath { continue }
+        // 摄像头画面/录音由摄像头模块自己管理，绝不是游离文件。
+        if fileURL.path.contains("/webcam") { continue }
         if let modified = values.contentModificationDate, modified > youngestDeletableDate {
           continue
         }
