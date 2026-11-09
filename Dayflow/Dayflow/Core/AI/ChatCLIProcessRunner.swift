@@ -11,6 +11,13 @@ enum ClaudeCLISessionMode: Sendable, Equatable {
   case resume(id: String)
 }
 
+/// An image sent inside the first Claude message instead of as a file to Read.
+/// The label (e.g. "Frame at 9:01 PM") goes right before the image; the path is a JPEG.
+struct ClaudeInlineImage: Sendable {
+  let label: String
+  let path: String
+}
+
 /// Settings for a one-shot `claude -p` run whose final answer is checked against a
 /// JSON schema (`--json-schema`). Used by the Daily brief.
 struct ClaudeCLIStructuredOutputOptions: Sendable {
@@ -77,18 +84,17 @@ struct ClaudeCLIExecutionProfile: Sendable {
     allowedReadPath: nil
   )
 
-  /// One-step timeline generation: the model reads each screenshot of the batch from a
-  /// temporary folder and writes the cards directly, thinking at medium effort.
+  /// One-step timeline generation: the batch's screenshots arrive inside the first message
+  /// and the model writes the cards directly, with no tools, thinking at medium effort.
   static let oneStepTimeline = ClaudeCLIExecutionProfile(
     kind: .oneStepTimeline,
     allowedReadPath: nil
   )
 
   private static let oneStepTimelineSystemPrompt =
-    "You turn ordered screenshots of a computer screen into timeline cards. Each screenshot is "
-    + "a local file listed in the user message. Use Read exactly once on every listed file "
-    + "before answering and treat the pixels as authoritative. Do not inspect any other files "
-    + "or use any other tools. Return only the JSON requested by the user."
+    "You turn ordered screenshots of a computer screen into timeline cards. The screenshots are "
+    + "attached to the user message, each labeled with its time. Treat the pixels as "
+    + "authoritative. Return only the JSON requested by the user."
 
   /// The Flow focus companion: one resumable conversation per session that
   /// reads a screenshot each turn and answers with a JSON verdict.
@@ -108,11 +114,6 @@ struct ClaudeCLIExecutionProfile: Sendable {
   /// and timeline.json; it may read and edit inside it and nowhere else.
   func allowingFlowWorkspace(at directory: String) -> ClaudeCLIExecutionProfile {
     ClaudeCLIExecutionProfile(kind: .flowAgent, allowedReadPath: directory)
-  }
-
-  /// Lets the one-step profile read every frame inside its temporary folder and nothing else.
-  func allowingReadDirectory(at directory: String) -> ClaudeCLIExecutionProfile {
-    ClaudeCLIExecutionProfile(kind: kind, allowedReadPath: directory)
   }
 
   func allowingRead(at path: String) -> ClaudeCLIExecutionProfile {
@@ -138,6 +139,7 @@ struct ClaudeCLIExecutionProfile: Sendable {
       return transcriptionCommandArguments(
         systemPrompt: Self.oneStepTimelineSystemPrompt,
         name: "dayflow-timeline",
+        tools: LoginShellRunner.shellEscape(""),
         settings: #"{"alwaysThinkingEnabled":true,"effortLevel":"medium"}"#,
         persistenceArguments: persistenceArguments)
 
@@ -210,11 +212,6 @@ struct ClaudeCLIExecutionProfile: Sendable {
         LoginShellRunner.shellEscape("Read(/\(allowedReadPath)/**)"),
         LoginShellRunner.shellEscape("Edit(/\(allowedReadPath)/**)"),
       ])
-    } else if let allowedReadPath, kind == .oneStepTimeline {
-      arguments.append(contentsOf: [
-        "--allowedTools",
-        LoginShellRunner.shellEscape("Read(/\(allowedReadPath)/**)"),
-      ])
     } else if let allowedReadPath {
       // Claude permission rules use // for absolute paths; / is project-relative.
       arguments.append(contentsOf: [
@@ -247,6 +244,8 @@ struct ChatCLIProcessRunner {
     static let readChunkSize = 64 * 1024
     static let timeoutSeconds: TimeInterval = 300
     static let codexFallbackDirectoryPrefix = "Dayflow-codex-home-"
+    /// How often a "CLI not found" failure may trigger a fresh read of the shell environment.
+    static let notFoundRefreshInterval: TimeInterval = 10 * 60
   }
 
   let codexExecutableResolver: CodexExecutableResolver
@@ -337,17 +336,7 @@ struct ChatCLIProcessRunner {
   func makeShellProcess(shellCommand: String, environment: [String: String] = [:])
     -> Process
   {
-    let process = Process()
-    process.executableURL = LoginShellRunner.userLoginShell
-    process.arguments = ["-l", "-i", "-c", shellCommand]
-    if !environment.isEmpty {
-      var mergedEnvironment = ProcessInfo.processInfo.environment
-      for (key, value) in environment {
-        mergedEnvironment[key] = value
-      }
-      process.environment = mergedEnvironment
-    }
-    return process
+    ShellEnvironment.shared.makeProcess(command: shellCommand, environment: environment)
   }
 
   func shouldDisableConfiguredCodexMCPServers(processEnvironment: [String: String]) -> Bool {
@@ -380,16 +369,42 @@ struct ChatCLIProcessRunner {
     -> CodexExecutableResolver.Resolution?
   {
     guard tool == .codex else { return nil }
-    guard let resolution = codexExecutableResolver.resolve() else {
-      throw NSError(
-        domain: "ChatCLI", code: -2,
-        userInfo: [
-          NSLocalizedDescriptionKey:
-            "Codex CLI not found. Please install it and run 'codex auth' in Terminal."
-        ]
-      )
+    if let resolution = codexExecutableResolver.resolve() {
+      return resolution
     }
-    return resolution
+
+    // Codex may have been installed, or the shell file edited, after the environment was read.
+    // This path can repeat on every batch, so read the shell again at most once per interval.
+    let previousRead = ShellEnvironment.shared.current().readAt
+    let snapshot = ShellEnvironment.shared.refreshIfOlder(
+      than: Constants.notFoundRefreshInterval, trigger: "codex_not_found")
+    if snapshot.readAt != previousRead {
+      if let resolution = codexExecutableResolver.resolve() {
+        return resolution
+      }
+      ShellEnvironment.shared.reportCLINotFound("codex")
+    }
+
+    throw NSError(
+      domain: "ChatCLI", code: -2,
+      userInfo: [
+        NSLocalizedDescriptionKey:
+          "Codex CLI not found. Please install it and run 'codex login' in Terminal."
+      ]
+    )
+  }
+
+  /// The shell found no CLI to run. Report it and read the shell again (at most once per
+  /// interval), so a CLI installed after Dayflow started works on the next run.
+  func reportNotFoundAndRefreshShellEnvironment(tool: ChatCLITool) {
+    let previousRead = ShellEnvironment.shared.current().readAt
+    let snapshot = ShellEnvironment.shared.refreshIfOlder(
+      than: Constants.notFoundRefreshInterval, trigger: "\(tool.rawValue)_not_found")
+    if snapshot.readAt != previousRead,
+      ShellEnvironment.shared.executablePath(named: tool.rawValue) == nil
+    {
+      ShellEnvironment.shared.reportCLINotFound(tool.rawValue)
+    }
   }
 
   func shouldRetryCodexExecutableResolution(
@@ -916,9 +931,10 @@ struct ChatCLIProcessRunner {
     if process.terminationStatus != 0, !finalState.3 {
       let stderr = finalState.2
       if stderr.contains("command not found") {
+        reportNotFoundAndRefreshShellEnvironment(tool: tool)
         continuation.yield(
           .error(
-            "\(toolName) CLI not found. Please install it and run '\(tool == .codex ? "codex auth" : "claude login")' in Terminal."
+            "\(toolName) CLI not found. Please install it and run '\(tool == .codex ? "codex login" : "claude login")' in Terminal."
           ))
       } else if !stderr.isEmpty {
         continuation.yield(.error(stderr))
@@ -1053,12 +1069,22 @@ struct ChatCLIProcessRunner {
     reasoningEffort: String? = nil,
     disableTools: Bool,
     profile: ClaudeCLIExecutionProfile? = nil,
-    sessionMode: ClaudeCLISessionMode = .ephemeral
+    sessionMode: ClaudeCLISessionMode = .ephemeral,
+    usesInlineImages: Bool = false
   ) -> [String] {
     var cmdParts: [String] = ["claude", "-p"]
     if let profile {
-      cmdParts.append(contentsOf: ["--output-format", "json", "--verbose"])
+      // Images can only go inside a message in stream-json input mode, which needs
+      // stream-json output too. The result event is parsed the same way either way.
+      let format = usesInlineImages ? "stream-json" : "json"
+      if usesInlineImages {
+        cmdParts.append(contentsOf: ["--input-format", "stream-json"])
+      }
+      cmdParts.append(contentsOf: ["--output-format", format, "--verbose"])
       cmdParts.append(contentsOf: profile.commandArguments(sessionMode: sessionMode))
+    } else {
+      // The JSON envelope carries token usage; parseAssistant unwraps the result text.
+      cmdParts.append(contentsOf: ["--output-format", "json"])
     }
     switch sessionMode {
     case .ephemeral:
@@ -1099,6 +1125,30 @@ struct ChatCLIProcessRunner {
   ) -> Data? {
     guard tool == .claude, claudeProfile != nil else { return nil }
     return promptWithImageHints(prompt: prompt, imagePaths: imagePaths).data(using: .utf8)
+  }
+
+  /// One stream-json user message: the prompt, then each image as base64 after its label.
+  func claudeInlineImagesPayload(prompt: String, images: [ClaudeInlineImage]) throws -> Data {
+    var content: [[String: Any]] = [["type": "text", "text": prompt]]
+    for image in images {
+      let imageData = try Data(contentsOf: URL(fileURLWithPath: image.path))
+      content.append(["type": "text", "text": image.label])
+      content.append([
+        "type": "image",
+        "source": [
+          "type": "base64",
+          "media_type": "image/jpeg",
+          "data": imageData.base64EncodedString(),
+        ],
+      ])
+    }
+    let message: [String: Any] = [
+      "type": "user",
+      "message": ["role": "user", "content": content],
+    ]
+    var line = try JSONSerialization.data(withJSONObject: message)
+    line.append(0x0A)
+    return line
   }
 
   func mergedProcessEnvironment(
@@ -1185,6 +1235,52 @@ struct ChatCLIProcessRunner {
     }
 
     return (trimmed, nil)
+  }
+
+  /// Reads `codex exec --json` output: the last agent message is the answer, `turn.completed`
+  /// carries token usage, and `error` / `turn.failed` carry fatal errors. Returns nil when the
+  /// output has no Codex events, so plain-text output still goes through `parseAssistant`.
+  func parseCodexJSONOutput(_ raw: String) -> (
+    text: String, usage: TokenUsage?, errors: [String]
+  )? {
+    let decoder = JSONDecoder()
+    var sawEvent = false
+    var text = ""
+    var usage: TokenUsage?
+    var errors: [String] = []
+
+    for line in raw.split(whereSeparator: \.isNewline) {
+      guard let event = try? decoder.decode(CodexJSONLEvent.self, from: Data(line.utf8)) else {
+        continue
+      }
+      sawEvent = true
+
+      if event.type == "item.completed", event.item?.type == "agent_message",
+        let message = event.item?.text
+      {
+        text = message
+      }
+
+      if event.type == "turn.completed", let turnUsage = event.usage {
+        let input = turnUsage.input_tokens ?? 0
+        let cached = turnUsage.cached_input_tokens ?? 0
+        // Stored the way Claude reports it: input without the cached part, cached separately.
+        let turn = TokenUsage(
+          input: max(0, input - cached), cachedInput: cached,
+          output: turnUsage.output_tokens ?? 0)
+        usage = turn.adding(usage)
+      }
+
+      if event.type == "error" || event.type == "turn.failed",
+        let message = event.error?.message ?? event.message,
+        !errors.contains(message)
+      {
+        errors.append(message)
+      }
+    }
+
+    guard sawEvent else { return nil }
+    return (text.trimmingCharacters(in: .whitespacesAndNewlines), usage, errors)
   }
 
   func parseClaudeJSONEnvelope(_ raw: String) -> (
@@ -1335,6 +1431,7 @@ struct ChatCLIProcessRunner {
     model: String? = nil, reasoningEffort: String? = nil, disableTools: Bool = false,
     claudeProfile: ClaudeCLIExecutionProfile? = nil,
     claudeSessionMode: ClaudeCLISessionMode = .ephemeral,
+    claudeInlineImages: [ClaudeInlineImage] = [],
     codexResumeSessionId: String? = nil,
     codexConfigOverrides: [String] = [],
     environmentOverrides: [String: String] = [:],
@@ -1350,6 +1447,7 @@ struct ChatCLIProcessRunner {
       disableTools: disableTools,
       claudeProfile: claudeProfile,
       claudeSessionMode: claudeSessionMode,
+      claudeInlineImages: claudeInlineImages,
       codexResumeSessionId: codexResumeSessionId,
       codexConfigOverrides: codexConfigOverrides,
       processEnvironment: environmentOverrides,
@@ -1369,6 +1467,7 @@ struct ChatCLIProcessRunner {
     disableTools: Bool,
     claudeProfile: ClaudeCLIExecutionProfile?,
     claudeSessionMode: ClaudeCLISessionMode,
+    claudeInlineImages: [ClaudeInlineImage] = [],
     codexResumeSessionId: String? = nil,
     codexConfigOverrides: [String] = [],
     processEnvironment: [String: String],
@@ -1394,10 +1493,11 @@ struct ChatCLIProcessRunner {
       if let codexResumeSessionId {
         cmdParts.append(contentsOf: [
           "exec", "resume", LoginShellRunner.shellEscape(codexResumeSessionId),
-          "--skip-git-repo-check",
+          "--skip-git-repo-check", "--json",
         ])
       } else {
-        cmdParts.append(contentsOf: ["exec", "--skip-git-repo-check"])
+        // JSON events are the only place Codex reports input and output tokens separately.
+        cmdParts.append(contentsOf: ["exec", "--skip-git-repo-check", "--json"])
       }
       if let model = model { cmdParts.append(contentsOf: ["-m", model]) }
       if let effort = reasoningEffort {
@@ -1441,7 +1541,8 @@ struct ChatCLIProcessRunner {
         reasoningEffort: reasoningEffort,
         disableTools: disableTools,
         profile: claudeProfile,
-        sessionMode: claudeSessionMode
+        sessionMode: claudeSessionMode,
+        usesInlineImages: !claudeInlineImages.isEmpty
       )
     }
 
@@ -1459,12 +1560,17 @@ struct ChatCLIProcessRunner {
       shellCommand: shellCommand,
       environment: effectiveProcessEnvironment
     )
-    let standardInput = standardInputPayload(
-      tool: tool,
-      prompt: prompt,
-      imagePaths: imagePaths,
-      claudeProfile: claudeProfile
-    )
+    let standardInput: Data?
+    if tool == .claude, claudeProfile != nil, !claudeInlineImages.isEmpty {
+      standardInput = try claudeInlineImagesPayload(prompt: prompt, images: claudeInlineImages)
+    } else {
+      standardInput = standardInputPayload(
+        tool: tool,
+        prompt: prompt,
+        imagePaths: imagePaths,
+        claudeProfile: claudeProfile
+      )
+    }
     let stdinPipe = standardInput.map { _ in Pipe() }
     process.standardInput = stdinPipe ?? FileHandle.nullDevice
     let stdoutPipe = Pipe()
@@ -1529,7 +1635,15 @@ struct ChatCLIProcessRunner {
       // Plain pipes are sufficient for Claude non-streaming mode and avoid PTY escape noise.
       rawOut = stripANSIEscapes(rawOut)
     }
-    let stderr = String(data: stderrBuffer, encoding: .utf8) ?? ""
+    var stderr = String(data: stderrBuffer, encoding: .utf8) ?? ""
+    let codexOutput = tool == .codex ? parseCodexJSONOutput(rawOut) : nil
+    if let codexOutput {
+      // In JSON mode Codex reports errors on stdout. Plain mode printed them to stderr as
+      // "ERROR: ...", and failure messages and the model fallback still look for them there.
+      for message in codexOutput.errors {
+        stderr += "\nERROR: " + message
+      }
+    }
 
     if let codexExecutable,
       shouldRetryCodexExecutableResolution(
@@ -1553,6 +1667,7 @@ struct ChatCLIProcessRunner {
         disableTools: disableTools,
         claudeProfile: claudeProfile,
         claudeSessionMode: claudeSessionMode,
+        claudeInlineImages: claudeInlineImages,
         codexResumeSessionId: codexResumeSessionId,
         codexConfigOverrides: codexConfigOverrides,
         processEnvironment: effectiveProcessEnvironment,
@@ -1584,6 +1699,7 @@ struct ChatCLIProcessRunner {
         disableTools: disableTools,
         claudeProfile: claudeProfile,
         claudeSessionMode: claudeSessionMode,
+        claudeInlineImages: claudeInlineImages,
         codexResumeSessionId: codexResumeSessionId,
         codexConfigOverrides: codexConfigOverrides,
         processEnvironment: fallback.environment,
@@ -1596,15 +1712,18 @@ struct ChatCLIProcessRunner {
     if process.terminationStatus == 127
       || (process.terminationStatus != 0 && stderr.contains("command not found"))
     {
+      reportNotFoundAndRefreshShellEnvironment(tool: tool)
       throw NSError(
         domain: "ChatCLI", code: -2,
         userInfo: [
           NSLocalizedDescriptionKey:
-            "\(toolName) CLI not found. Please install it and run '\(tool == .codex ? "codex auth" : "claude login")' in Terminal."
+            "\(toolName) CLI not found. Please install it and run '\(tool == .codex ? "codex login" : "claude login")' in Terminal."
         ])
     }
 
-    let parsed = parseAssistant(tool: tool, raw: rawOut)
+    let parsed =
+      codexOutput.map { (text: $0.text, usage: $0.usage) }
+      ?? parseAssistant(tool: tool, raw: rawOut)
     let duration = finished.timeIntervalSince(started)
     let modelLabel = model ?? "default"
     print("⏱️ [ChatCLI] \(tool.rawValue) \(modelLabel) \(String(format: "%.2f", duration))s")

@@ -62,14 +62,17 @@ extension ClaudeProvider {
         )
       )
       let previousCards = plan.context.existingCards
+      let accessibilityLog = await OneStepTimelineAccessibilityLog.load(
+        windowStart: frames.windowStart, windowEnd: frames.windowEnd, batchId: batchId)
       let prompt = buildTimelinePrompt(
         frames: frames,
         previousCards: previousCards,
-        categories: context.categories
+        categories: context.categories,
+        accessibilityLog: accessibilityLog
       )
 
+      let inlineImages = timelineInlineImages(frames: frames)
       let profile = ClaudeCLIExecutionProfile.oneStepTimeline
-        .allowingReadDirectory(at: frames.directory.path)
       let sessionID = UUID().uuidString
       let sessionCleanup = ClaudeSessionCleanup(sessionID: sessionID)
       defer { sessionCleanup.cleanup() }
@@ -79,12 +82,15 @@ extension ClaudeProvider {
         attempt = currentAttempt
         let sessionMode: ClaudeCLISessionMode =
           currentAttempt == 1 ? .start(id: sessionID) : .resume(id: sessionID)
+        // The frames go in the first message only; a correction turn resumes the session,
+        // which already holds them.
         let currentRun = try await runOptimizedClaudeTurn(
           prompt: currentPrompt,
           model: model,
           reasoningEffort: effort,
           profile: profile,
-          sessionMode: sessionMode
+          sessionMode: sessionMode,
+          inlineImages: currentAttempt == 1 ? inlineImages : []
         )
         run = currentRun
         accumulatedUsage = Self.combinedTokenUsage(accumulatedUsage, currentRun.usage)
@@ -170,7 +176,8 @@ extension ClaudeProvider {
   private func buildTimelinePrompt(
     frames: OneStepTimelineFrames,
     previousCards: [ActivityCardData],
-    categories: [LLMCategoryDescriptor]
+    categories: [LLMCategoryDescriptor],
+    accessibilityLog: String?
   ) -> String {
     let userName = NSFullUserName()
       .split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
@@ -196,16 +203,6 @@ extension ClaudeProvider {
     let previousCardsData = try? JSONEncoder().encode(previousCards)
     let previousCardsJSON = previousCardsData.flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
 
-    let labelFormatter = DateFormatter()
-    labelFormatter.dateFormat = perMinute ? "h:mm a" : "h:mm:ss a"
-    labelFormatter.locale = Locale(identifier: "en_US_POSIX")
-    labelFormatter.timeZone = TimeZone.current
-    let frameLines = frames.frames.map { frame in
-      let label = labelFormatter.string(
-        from: Date(timeIntervalSince1970: TimeInterval(frame.capturedAt)))
-      return "Frame at " + label + ": " + frame.url.path
-    }.joined(separator: "\n")
-
     // Explicit concatenation keeps screen-derived text in previous cards from being interpolated.
     var text = prompt.trimmingCharacters(in: .whitespacesAndNewlines) + "\n\nINPUTS:\n"
     if !userName.isEmpty {
@@ -215,13 +212,27 @@ extension ClaudeProvider {
     text +=
       "New screenshots: " + String(frames.frames.count) + " frames, covering "
       + formatTimestampForPrompt(frames.windowStart) + " to "
-      + formatTimestampForPrompt(frames.windowEnd) + ". Each is a local image file:\n"
-    text += frameLines + "\n\n"
-    text +=
-      "Tool requirement: use Read exactly once on every listed file before answering. "
-      + "Do not narrate or summarize individual frames before the answer.\n\n"
+      + formatTimestampForPrompt(frames.windowEnd)
+      + ". Each is attached below, labeled with its time.\n\n"
+    text += "Do not narrate or summarize individual frames before the answer.\n\n"
     text += ClaudeTimelinePrompt.outputBlock
+    if let accessibilityLog {
+      text += ClaudeTimelinePrompt.accessibilityLogSection(accessibilityLog)
+    }
     return text
+  }
+
+  /// Each frame labeled with its capture time, to send inside the first message.
+  private func timelineInlineImages(frames: OneStepTimelineFrames) -> [ClaudeInlineImage] {
+    let labelFormatter = DateFormatter()
+    labelFormatter.dateFormat = frames.isOneFramePerMinute ? "h:mm a" : "h:mm:ss a"
+    labelFormatter.locale = Locale(identifier: "en_US_POSIX")
+    labelFormatter.timeZone = TimeZone.current
+    return frames.frames.map { frame in
+      let label = labelFormatter.string(
+        from: Date(timeIntervalSince1970: TimeInterval(frame.capturedAt)))
+      return ClaudeInlineImage(label: "Frame at " + label, path: frame.url.path)
+    }
   }
 
   private func buildTimelineCorrectionPrompt(
@@ -238,7 +249,7 @@ extension ClaudeProvider {
     - The cards together must cover the previous cards' time and the new window, \(windowStart) to \(windowEnd), with no gaps and no overlaps, and must not extend past \(windowEnd).
     - Every card except the last must be 10 to 60 minutes long. Fold a shorter stretch into the neighbouring card and keep its detail lines.
     - Keep the detailedSummary lines that were correct; only change what the issues require.
-    - Do not reread files or use tools. Output JSON only, with no code fences or extra text.
+    - Do not use tools. Output JSON only, with no code fences or extra text.
     """
   }
 

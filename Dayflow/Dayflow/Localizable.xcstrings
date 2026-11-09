@@ -1804,6 +1804,9 @@
         }
       }
     },
+    "%@ transcript" : {
+
+    },
     "%@ until your break ends." : {
 
     },
@@ -2471,6 +2474,9 @@
           }
         }
       }
+    },
+    "%lld Feedback" : {
+
     },
     "%lld hours" : {
       "localizations" : {
@@ -4108,6 +4114,7 @@
       }
     },
     "✓ Permission granted! Click Next to continue." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7115,6 +7122,7 @@
       }
     },
     "Access code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7206,6 +7214,9 @@
           }
         }
       }
+    },
+    "Accessibility" : {
+
     },
     "Account" : {
       "localizations" : {
@@ -12965,6 +12976,9 @@
         }
       }
     },
+    "Check in on the status of each task in the list view.\nCome back tomorrow to see what else Dayflow can complete for you." : {
+
+    },
     "Check installations" : {
       "localizations" : {
         "de" : {
@@ -13849,48 +13863,48 @@
         }
       }
     },
-    "Choose your Gemini model. We recommend 3.5 Flash, with 3.1 Flash-Lite available as a fallback." : {
+    "Choose your Gemini model. We recommend 3.8 Flash, with 3.5 Flash-Lite available as a fallback." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Wähle dein Gemini-Modell. Wir empfehlen 3.5 Flash; 3.1 Flash-Lite ist als Ausweichmodell verfügbar."
+            "value" : "Wähle dein Gemini-Modell. Wir empfehlen 3.8 Flash; 3.5 Flash-Lite ist als Ausweichmodell verfügbar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Choisissez votre modèle Gemini. Nous recommandons 3.5 Flash, avec 3.1 Flash-Lite comme solution de repli."
+            "value" : "Choisissez votre modèle Gemini. Nous recommandons 3.8 Flash, avec 3.5 Flash-Lite comme solution de repli."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Geminiモデルを選択してください。3.5 Flashを推奨します。フォールバックとして3.1 Flash-Liteも利用できます。"
+            "value" : "Geminiモデルを選択してください。3.8 Flashを推奨します。フォールバックとして3.5 Flash-Liteも利用できます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Gemini 모델을 선택하세요. 3.5 Flash를 권장하며, 3.1 Flash-Lite를 대체 모델로 사용할 수 있습니다."
+            "value" : "Gemini 모델을 선택하세요. 3.8 Flash를 권장하며, 3.5 Flash-Lite를 대체 모델로 사용할 수 있습니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Выберите модель Gemini. Рекомендуем 3.5 Flash; в качестве резервной доступна 3.1 Flash-Lite."
+            "value" : "Выберите модель Gemini. Рекомендуем 3.8 Flash; в качестве резервной доступна 3.5 Flash-Lite."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "选择 Gemini 模型。推荐使用 3.5 Flash，也可将 3.1 Flash-Lite 用作备用。"
+            "value" : "选择 Gemini 模型。推荐使用 3.8 Flash，也可将 3.5 Flash-Lite 用作备用。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "選擇 Gemini 模型。建議使用 3.5 Flash，也可將 3.1 Flash-Lite 用作備援。"
+            "value" : "選擇 Gemini 模型。建議使用 3.8 Flash，也可將 3.5 Flash-Lite 用作備援。"
           }
         }
       }
@@ -15430,6 +15444,9 @@
         }
       }
     },
+    "Click to edit" : {
+
+    },
     "Close" : {
       "localizations" : {
         "de" : {
@@ -15798,48 +15815,48 @@
         }
       }
     },
-    "Codex CLI is not signed in. Run 'codex auth' in Terminal to authenticate." : {
+    "Codex CLI is not signed in. Run 'codex login' in Terminal to authenticate." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI ist nicht angemeldet. Führe zur Authentifizierung 'codex auth' im Terminal aus."
+            "value" : "Codex CLI ist nicht angemeldet. Führe zur Authentifizierung 'codex login' im Terminal aus."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI n’est pas connecté. Exécutez 'codex auth' dans Terminal pour vous authentifier."
+            "value" : "Codex CLI n’est pas connecté. Exécutez 'codex login' dans Terminal pour vous authentifier."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI にサインインしていません。認証するにはターミナルで 'codex auth' を実行してください。"
+            "value" : "Codex CLI にサインインしていません。認証するにはターミナルで 'codex login' を実行してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI에 로그인되어 있지 않습니다. 터미널에서 'codex auth'를 실행하여 인증하세요."
+            "value" : "Codex CLI에 로그인되어 있지 않습니다. 터미널에서 'codex login'를 실행하여 인증하세요."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Вход в Codex CLI не выполнен. Запустите 'codex auth' в Терминале для аутентификации."
+            "value" : "Вход в Codex CLI не выполнен. Запустите 'codex login' в Терминале для аутентификации."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI 尚未登录。请在终端中运行 'codex auth' 进行身份验证。"
+            "value" : "Codex CLI 尚未登录。请在终端中运行 'codex login' 进行身份验证。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI 尚未登入。請在「終端機」中執行 'codex auth' 以進行驗證。"
+            "value" : "Codex CLI 尚未登入。請在「終端機」中執行 'codex login' 以進行驗證。"
           }
         }
       }
@@ -15890,48 +15907,48 @@
         }
       }
     },
-    "Codex CLI returned an error. You may need to sign in — run 'codex auth' in Terminal." : {
+    "Codex CLI returned an error. You may need to sign in — run 'codex login' in Terminal." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI hat einen Fehler zurückgegeben. Möglicherweise musst du dich anmelden — führe „codex auth“ im Terminal aus."
+            "value" : "Codex CLI hat einen Fehler zurückgegeben. Möglicherweise musst du dich anmelden — führe „codex login“ im Terminal aus."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI a renvoyé une erreur. Vous devrez peut-être vous connecter — exécutez « codex auth » dans Terminal."
+            "value" : "Codex CLI a renvoyé une erreur. Vous devrez peut-être vous connecter — exécutez « codex login » dans Terminal."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLIでエラーが発生しました。サインインが必要な可能性があります。ターミナルで 'codex auth' を実行してください。"
+            "value" : "Codex CLIでエラーが発生しました。サインインが必要な可能性があります。ターミナルで 'codex login' を実行してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI에서 오류가 발생했습니다. 로그인이 필요할 수 있습니다. 터미널에서 'codex auth'를 실행하세요."
+            "value" : "Codex CLI에서 오류가 발생했습니다. 로그인이 필요할 수 있습니다. 터미널에서 'codex login'를 실행하세요."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI вернул ошибку. Возможно, вам нужно войти — выполните команду 'codex auth' в Терминале."
+            "value" : "Codex CLI вернул ошибку. Возможно, вам нужно войти — выполните команду 'codex login' в Терминале."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI 返回错误。你可能需要登录 — 请在终端中运行 'codex auth'。"
+            "value" : "Codex CLI 返回错误。你可能需要登录 — 请在终端中运行 'codex login'。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Codex CLI 傳回錯誤。你可能需要登入 — 請在「終端機」中執行 'codex auth'。"
+            "value" : "Codex CLI 傳回錯誤。你可能需要登入 — 請在「終端機」中執行 'codex login'。"
           }
         }
       }
@@ -16791,6 +16808,7 @@
       }
     },
     "Coming Soon" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -19186,6 +19204,9 @@
           }
         }
       }
+    },
+    "Copy the prompt" : {
+
     },
     "Copy timeline" : {
       "localizations" : {
@@ -21685,48 +21706,48 @@
         }
       }
     },
-    "Dayflow can talk to ChatGPT (via the Codex CLI) or Claude Code. You only need one installed and signed in on this Mac. After installing, run `codex auth` or `claude login` in Terminal to connect it to your account." : {
+    "Dayflow can talk to ChatGPT (via the Codex CLI) or Claude Code. You only need one installed and signed in on this Mac. After installing, run `codex login` or `claude login` in Terminal to connect it to your account." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dayflow kann mit ChatGPT (über die Codex CLI) oder Claude Code kommunizieren. Du musst nur eines davon auf diesem Mac installieren und dich anmelden. Führe nach der Installation `codex auth` oder `claude login` im Terminal aus, um es mit deinem Konto zu verbinden."
+            "value" : "Dayflow kann mit ChatGPT (über die Codex CLI) oder Claude Code kommunizieren. Du musst nur eines davon auf diesem Mac installieren und dich anmelden. Führe nach der Installation `codex login` oder `claude login` im Terminal aus, um es mit deinem Konto zu verbinden."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dayflow peut communiquer avec ChatGPT (via le CLI Codex) ou Claude Code. Il vous suffit d’en installer un et de vous y connecter sur ce Mac. Après l’installation, exécutez `codex auth` ou `claude login` dans Terminal pour le connecter à votre compte."
+            "value" : "Dayflow peut communiquer avec ChatGPT (via le CLI Codex) ou Claude Code. Il vous suffit d’en installer un et de vous y connecter sur ce Mac. Après l’installation, exécutez `codex login` ou `claude login` dans Terminal pour le connecter à votre compte."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "DayflowはChatGPT（Codex CLI経由）またはClaude Codeと連携できます。このMacにいずれか一方をインストールしてサインインするだけです。インストール後、ターミナルで`codex auth`または`claude login`を実行し、アカウントに接続してください。"
+            "value" : "DayflowはChatGPT（Codex CLI経由）またはClaude Codeと連携できます。このMacにいずれか一方をインストールしてサインインするだけです。インストール後、ターミナルで`codex login`または`claude login`を実行し、アカウントに接続してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dayflow는 ChatGPT(Codex CLI 사용) 또는 Claude Code와 통신할 수 있습니다. 이 Mac에 둘 중 하나만 설치하고 로그인하면 됩니다. 설치 후 터미널에서 `codex auth` 또는 `claude login`을 실행하여 계정에 연결하세요."
+            "value" : "Dayflow는 ChatGPT(Codex CLI 사용) 또는 Claude Code와 통신할 수 있습니다. 이 Mac에 둘 중 하나만 설치하고 로그인하면 됩니다. 설치 후 터미널에서 `codex login` 또는 `claude login`을 실행하여 계정에 연결하세요."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dayflow может взаимодействовать с ChatGPT (через Codex CLI) или Claude Code. Достаточно установить один из них на этом Mac и войти в учётную запись. После установки выполните `codex auth` или `claude login` в Терминале, чтобы подключить его к своей учётной записи."
+            "value" : "Dayflow может взаимодействовать с ChatGPT (через Codex CLI) или Claude Code. Достаточно установить один из них на этом Mac и войти в учётную запись. После установки выполните `codex login` или `claude login` в Терминале, чтобы подключить его к своей учётной записи."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dayflow 可以与 ChatGPT（通过 Codex CLI）或 Claude Code 通信。你只需在这台 Mac 上安装其中一个并登录。安装后，在“终端”中运行 `codex auth` 或 `claude login`，将其连接到你的账户。"
+            "value" : "Dayflow 可以与 ChatGPT（通过 Codex CLI）或 Claude Code 通信。你只需在这台 Mac 上安装其中一个并登录。安装后，在“终端”中运行 `codex login` 或 `claude login`，将其连接到你的账户。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dayflow 可以與 ChatGPT（透過 Codex CLI）或 Claude Code 通訊。你只需在這台 Mac 上安裝其中一個並登入。安裝後，在「終端機」中執行 `codex auth` 或 `claude login`，將其連線至你的帳號。"
+            "value" : "Dayflow 可以與 ChatGPT（透過 Codex CLI）或 Claude Code 通訊。你只需在這台 Mac 上安裝其中一個並登入。安裝後，在「終端機」中執行 `codex login` 或 `claude login`，將其連線至你的帳號。"
           }
         }
       }
@@ -23651,52 +23672,6 @@
         }
       }
     },
-    "Decent" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Ordentlich"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Correct"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "まずまず"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "괜찮음"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Неплохо"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "还不错"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "還不錯"
-          }
-        }
-      }
-    },
     "default" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -24437,6 +24412,12 @@
       }
     },
     "Dismiss" : {
+
+    },
+    "DISMISS" : {
+
+    },
+    "Dismiss this task" : {
 
     },
     "Distracted" : {
@@ -25593,6 +25574,9 @@
         }
       }
     },
+    "Drag into the list in System Settings" : {
+
+    },
     "Drag or scroll to adjust %@" : {
       "localizations" : {
         "de" : {
@@ -25638,6 +25622,9 @@
           }
         }
       }
+    },
+    "Drag the Dayflow icon into the list in System Settings." : {
+
     },
     "Drag to category" : {
       "localizations" : {
@@ -27545,6 +27532,9 @@
         }
       }
     },
+    "Enter Flow" : {
+
+    },
     "Enter the 6 digit code." : {
       "localizations" : {
         "de" : {
@@ -28099,6 +28089,52 @@
     },
     "Everything you completed" : {
 
+    },
+    "Executive" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Führungskraft"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cadre dirigeant"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "経営幹部"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "경영진"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Руководитель"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "高管"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "高階主管"
+          }
+        }
+      }
     },
     "Exit code %d" : {
       "localizations" : {
@@ -28977,6 +29013,9 @@
         }
       }
     },
+    "Feedback" : {
+
+    },
     "Feedback illustration" : {
       "localizations" : {
         "de" : {
@@ -29629,6 +29668,7 @@
 
     },
     "Flow helps you plan your day and find your way back when you get distracted." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -29727,6 +29767,9 @@
     "Flow is unlocked on this Mac and attached to your Dayflow account." : {
 
     },
+    "Flow isn't available for your account yet." : {
+
+    },
     "Flow needs an internet connection" : {
 
     },
@@ -29780,7 +29823,7 @@
         }
       }
     },
-    "Flow watches your screen during a session to keep you on track, and that takes a level of intelligence Gemini and local models can't reach yet. Switch your provider to Claude, ChatGPT or Dayflow Pro in Settings to use Flow now, or sign up and we'll tell you when it works with yours." : {
+    "Flow watches your screen during a session to keep you on track, and that takes a level of intelligence Gemini and local models can't reach yet. Switch your provider to Claude, ChatGPT or Dayflow Pro in Settings to use Flow." : {
 
     },
     "Flow: Nudge Style — %@" : {
@@ -30569,7 +30612,54 @@
         }
       }
     },
+    "Founder" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gründer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fondateur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "創業者"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "창업자"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Основатель"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "创始人"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "創辦人"
+          }
+        }
+      }
+    },
     "Founder / Executive" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -32143,6 +32233,7 @@
       }
     },
     "Get early access to Flow" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -32655,6 +32746,12 @@
     "gpt-6-astra" : {
 
     },
+    "Grant" : {
+
+    },
+    "Grant %@" : {
+
+    },
     "Granted" : {
       "localizations" : {
         "de" : {
@@ -32747,7 +32844,17 @@
         }
       }
     },
+    "HAND OFF" : {
+
+    },
+    "Hand off to agent" : {
+
+    },
+    "Hand-off settings" : {
+
+    },
     "Have an access code?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -33023,6 +33130,9 @@
           }
         }
       }
+    },
+    "HELP US IMPROVE THE PRODUCT" : {
+
     },
     "here" : {
       "localizations" : {
@@ -36122,6 +36232,7 @@
       }
     },
     "Join our waitlist" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -36771,6 +36882,9 @@
           }
         }
       }
+    },
+    "Know which app you're in, so cards are labeled right." : {
+
     },
     "Knows the difference between YouTube tutorials and YouTube rabbit holes. Dayflow actually gets what you're working on." : {
       "localizations" : {
@@ -37556,6 +37670,9 @@
         }
       }
     },
+    "Let your agents complete these tasks for you." : {
+
+    },
     "Light" : {
       "localizations" : {
         "de" : {
@@ -37694,6 +37811,12 @@
           }
         }
       }
+    },
+    "Link" : {
+
+    },
+    "Links" : {
+
     },
     "LM Studio" : {
       "localizations" : {
@@ -45282,6 +45405,52 @@
         }
       }
     },
+    "Passable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brauchbar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Passable"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "まあまあ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "그럭저럭"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сносно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "尚可"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "尚可"
+          }
+        }
+      }
+    },
     "Past referrals (%lld)" : {
       "localizations" : {
         "de" : {
@@ -45373,6 +45542,9 @@
           }
         }
       }
+    },
+    "Paste the prompt" : {
+
     },
     "Paste this into any MCP client's configuration." : {
       "localizations" : {
@@ -45660,7 +45832,11 @@
     "Paused until %@" : {
 
     },
+    "Periodic screenshots let Dayflow write your timeline for you." : {
+
+    },
     "Permission" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -45753,6 +45929,9 @@
           }
         }
       }
+    },
+    "Permissions" : {
+
     },
     "Personal" : {
       "localizations" : {
@@ -45984,6 +46163,9 @@
         }
       }
     },
+    "Pick what you want to get done and start a session. Flow watches your screen while it runs and nudges you back when you wander off. It's new, so tell us what feels off." : {
+
+    },
     "Pick your Daily provider" : {
       "localizations" : {
         "de" : {
@@ -46031,6 +46213,9 @@
       }
     },
     "Plan for your day and see new updates all in one place." : {
+
+    },
+    "Plan your day, then stay on it" : {
 
     },
     "Planning" : {
@@ -46677,6 +46862,9 @@
           }
         }
       }
+    },
+    "Press ⌘V to paste" : {
+
     },
     "PRIMARY" : {
       "localizations" : {
@@ -47416,6 +47604,9 @@
         }
       }
     },
+    "Prompt" : {
+
+    },
     "Prompt changes apply on Restart agent (a new Codex conversation)." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -47464,6 +47655,9 @@
       }
     },
     "Prompt changes apply on Restart agent (a new conversation)." : {
+
+    },
+    "PROMPT FOR YOUR AGENT" : {
 
     },
     "Prototype checkpoint" : {
@@ -47743,6 +47937,9 @@
           }
         }
       }
+    },
+    "Put every task back in the stack as new" : {
+
     },
     "Quick question" : {
       "localizations" : {
@@ -48357,9 +48554,6 @@
         }
       }
     },
-    "Read transcript" : {
-
-    },
     "Ready for review" : {
       "localizations" : {
         "de" : {
@@ -48497,6 +48691,9 @@
           }
         }
       }
+    },
+    "RECENT" : {
+
     },
     "Recent highlights" : {
       "localizations" : {
@@ -50784,6 +50981,9 @@
         }
       }
     },
+    "Reset %@ to default" : {
+
+    },
     "Reset Onboarding" : {
       "localizations" : {
         "de" : {
@@ -50830,6 +51030,9 @@
         }
       }
     },
+    "Reset tasks" : {
+
+    },
     "Reset to Dayflow defaults" : {
       "localizations" : {
         "de" : {
@@ -50875,9 +51078,6 @@
           }
         }
       }
-    },
-    "Reset to default" : {
-
     },
     "Resolution" : {
       "localizations" : {
@@ -51348,6 +51548,9 @@
         }
       }
     },
+    "Reviewed" : {
+
+    },
     "Reviewed scope-switching and SBI handling flows; drafted \"Areas requiring additional PD input\" spec with ClickUp links; synced with Jason Ross on SBI UX details" : {
       "localizations" : {
         "de" : {
@@ -51669,6 +51872,9 @@
           }
         }
       }
+    },
+    "Run the prompt" : {
+
     },
     "Run this command:" : {
       "localizations" : {
@@ -52282,6 +52488,9 @@
           }
         }
       }
+    },
+    "Screen Recording" : {
+
     },
     "Screen recording access needed" : {
       "localizations" : {
@@ -54798,6 +55007,9 @@
         }
       }
     },
+    "Sign in to enter" : {
+
+    },
     "Sign in to get your invite link" : {
       "localizations" : {
         "de" : {
@@ -54938,6 +55150,7 @@
       }
     },
     "Sign in under Settings › Account first, then enter your code." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -55030,6 +55243,7 @@
       }
     },
     "Sign up" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -57524,6 +57738,9 @@
         }
       }
     },
+    "SUBMITTED" : {
+
+    },
     "Subscription requirements" : {
       "localizations" : {
         "de" : {
@@ -58216,6 +58433,9 @@
         }
       }
     },
+    "Take these off your plate" : {
+
+    },
     "Taking a break" : {
 
     },
@@ -58310,6 +58530,12 @@
           }
         }
       }
+    },
+    "Task" : {
+
+    },
+    "Tasks" : {
+
     },
     "Tasks for %@" : {
       "localizations" : {
@@ -58540,6 +58766,9 @@
           }
         }
       }
+    },
+    "Tell us why:" : {
+
     },
     "Terminal command" : {
       "localizations" : {
@@ -59558,6 +59787,9 @@
         }
       }
     },
+    "The brief is written by two Claude runs at once: one for the docket, one for every other section. Placeholders are filled in at run time. Used from the next run, so Retry picks it up." : {
+
+    },
     "The Claude transcription contact sheet could not be created." : {
       "localizations" : {
         "de" : {
@@ -59787,9 +60019,6 @@
           }
         }
       }
-    },
-    "The full prompt sent to Claude. Placeholders are filled in at run time. Used from the next run, so Retry picks it up." : {
-
     },
     "The intro video, role-selection screen, and preferences screen are now wired up. We can keep replacing the remaining placeholders step by step without touching production onboarding yet." : {
       "localizations" : {
@@ -63596,6 +63825,7 @@
       }
     },
     "Turn on Screen Recording for Dayflow, then quit and reopen the app to finish." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -63640,6 +63870,9 @@
           }
         }
       }
+    },
+    "Turn on the switch next to Dayflow." : {
+
     },
     "Turn them on to continue. If you come back from System Settings, we'll check automatically." : {
       "localizations" : {
@@ -63964,6 +64197,9 @@
         }
       }
     },
+    "Undo dismiss" : {
+
+    },
     "unknown" : {
       "localizations" : {
         "de" : {
@@ -64057,6 +64293,7 @@
       }
     },
     "Unlock" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -68776,6 +69013,7 @@
       }
     },
     "You are always in control — you can pause or turn off Dayflow whenever you like." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -68820,6 +69058,9 @@
           }
         }
       }
+    },
+    "You are always in control. You can pause or turn off Dayflow whenever you like." : {
+
     },
     "You are ready to go!" : {
       "localizations" : {
@@ -68959,6 +69200,9 @@
           }
         }
       }
+    },
+    "You dismissed " : {
+
     },
     "You earn " : {
       "extractionState" : "stale",
@@ -69333,6 +69577,7 @@
       }
     },
     "You're on the list" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -69515,6 +69760,9 @@
           }
         }
       }
+    },
+    "You’ve swiped through all the tasks for the day" : {
+
     },
     "You've unlocked everything Dayflow does. Enjoy your timeline." : {
       "localizations" : {

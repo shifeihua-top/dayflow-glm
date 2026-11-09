@@ -47,13 +47,35 @@ struct DailyBriefLink: Codable, Hashable, Sendable {
   var app: String?
 }
 
+/// One note someone left about a docket task, quoted or summarized from where they said it.
+struct DailyBriefFeedbackNote: Codable, Hashable, Sendable {
+  /// Full name, e.g. "Jerry Liu".
+  var name: String
+  /// Where it was said, e.g. "#maggie, Oct 21" or "Huddle notes, Oct 22".
+  var source: String?
+  var text: String
+  var url: String?
+}
+
 struct DailyBriefDocketItem: Codable, Hashable, Sendable {
   var title: String
+  /// The short description shown under Details.
   var detail: String?
   /// yyyy-MM-dd, only when a source stated it.
   var due: String?
   var people: [DailyBriefPerson]?
   var links: [DailyBriefLink]?
+  /// A ready-to-send prompt for an AI agent that would do the task.
+  var prompt: String?
+  /// True when an agent could do the task without the user.
+  var agent: Bool?
+  var feedback: [DailyBriefFeedbackNote]?
+  /// When every feedback note is from one person: a one-paragraph summary shown in their place.
+  var feedbackSummary: String?
+  /// The message or thread the summary came from.
+  var feedbackUrl: String?
+  /// Titles of the `links` worth handing to the agent along with the prompt.
+  var attach: [String]?
 }
 
 struct DailyBriefTrackingItem: Codable, Hashable, Sendable {
@@ -176,6 +198,31 @@ struct DailyBriefAddedTask: Codable, Hashable, Identifiable, Sendable {
   var title: String
 }
 
+/// Where a docket task went: handed to an agent, or dismissed.
+struct DailyBriefHandoff: Codable, Hashable, Sendable {
+  enum Method: String, Codable, Sendable {
+    /// Copy the prompt and paste it into the agent's app.
+    case paste
+    /// Run the prompt in the background in the task's folder.
+    case run
+  }
+
+  var title: String
+  var dismissed: Bool
+  /// "Claude" or "ChatGPT"; nil for a dismissal.
+  var agent: String?
+  var method: Method?
+  var at = Date()
+  /// Why it was dismissed, from the pop-up.
+  var reason: String?
+  /// The user opened the result.
+  var reviewed = false
+  /// A background run: its output file (relative to the brief folder), and when it ended.
+  var outputFile: String?
+  var finishedAt: Date?
+  var failed = false
+}
+
 /// What the user did with one day's brief. Item keys come from DailyBriefStore.itemKey.
 struct DailyBriefUserState: Codable, Equatable, Sendable {
   var checkedItemKeys: Set<String> = []
@@ -183,6 +230,12 @@ struct DailyBriefUserState: Codable, Equatable, Sendable {
   var addedTasks: [DailyBriefAddedTask] = []
   /// True once the brief has been shown to the user (auto pop-up or opened from the notice).
   var hasBeenShown = false
+  /// Docket task title → the user's edited prompt.
+  var promptEdits: [String: String] = [:]
+  /// Docket task title → the folder its agent works in ("" for no folder).
+  var folders: [String: String] = [:]
+  /// Every hand-off and dismissal, oldest first. The last entry for a title wins.
+  var handoffs: [DailyBriefHandoff] = []
 
   init() {}
 
@@ -197,6 +250,11 @@ struct DailyBriefUserState: Codable, Equatable, Sendable {
     addedTasks =
       try container.decodeIfPresent([DailyBriefAddedTask].self, forKey: .addedTasks) ?? []
     hasBeenShown = try container.decodeIfPresent(Bool.self, forKey: .hasBeenShown) ?? false
+    promptEdits =
+      try container.decodeIfPresent([String: String].self, forKey: .promptEdits) ?? [:]
+    folders = try container.decodeIfPresent([String: String].self, forKey: .folders) ?? [:]
+    handoffs =
+      try container.decodeIfPresent([DailyBriefHandoff].self, forKey: .handoffs) ?? []
   }
 }
 
@@ -219,6 +277,9 @@ struct DailyBriefRunStats: Codable, Equatable, Sendable {
   var usedPromptOverride = false
   var usedOverrideInstructions = false
   var trigger: String?
+  /// Part name ("docket" or "extras") → why that run failed, when the brief was kept
+  /// from the other run alone.
+  var failedParts: [String: String]?
 
   init(
     durationSeconds: Double = 0, usedPromptOverride: Bool = false,
@@ -249,6 +310,7 @@ struct DailyBriefRunStats: Codable, Equatable, Sendable {
     usedOverrideInstructions =
       try c.decodeIfPresent(Bool.self, forKey: .usedOverrideInstructions) ?? false
     trigger = try c.decodeIfPresent(String.self, forKey: .trigger)
+    failedParts = try c.decodeIfPresent([String: String].self, forKey: .failedParts)
   }
 }
 

@@ -106,6 +106,8 @@ struct LLMProviderSetupView: View {
         .textSelection(.enabled)
       }
       .padding(.leading, fixedOffset)
+      // Same right margin as the Next button, so cards never touch the window edge.
+      .padding(.trailing, 40)
 
       Spacer()  // Push everything to top
     }
@@ -386,7 +388,7 @@ struct LLMProviderSetupView: View {
 
         VStack(alignment: .leading, spacing: 12) {
           Text(
-            "Choose your Gemini model. We recommend 3.5 Flash, with 3.1 Flash-Lite available as a fallback."
+            "Choose your Gemini model. We recommend 3.8 Flash, with 3.5 Flash-Lite available as a fallback."
           )
           .font(.custom("Figtree", size: 16))
           .fontWeight(.semibold)

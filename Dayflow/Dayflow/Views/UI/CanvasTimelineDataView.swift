@@ -16,17 +16,6 @@ private struct CanvasConfig {
   static let endHour: Int = 28  // 4 AM next day
 }
 
-private struct TimelineCardsLayerFramePreferenceKey: PreferenceKey {
-  static var defaultValue: CGRect = .zero
-
-  static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-    let next = nextValue()
-    if next != .zero {
-      value = next
-    }
-  }
-}
-
 // Positioned activity for Canvas rendering
 private struct CanvasPositionedActivity: Identifiable {
   let id: String
@@ -54,7 +43,7 @@ struct CanvasTimelineDataView: View {
   @Binding var hasAnyActivities: Bool
   @Binding var refreshTrigger: Int
   let weeklyHoursFrame: CGRect
-  @Binding var weeklyHoursIntersectsCard: Bool
+  let footerState: TimelineFooterState
   let contentLeadingInset: CGFloat
   let hourHeight: CGFloat
   let cardTextFontSize: CGFloat
@@ -76,7 +65,7 @@ struct CanvasTimelineDataView: View {
   @State private var selectedCardId: String? = nil
   @State private var positionedActivities: [CanvasPositionedActivity] = []
   @State private var recordingProjection: TimelineRecordingProjectionWindow?
-  @State private var cardsLayerFrame: CGRect = .zero
+  @State private var scrollGeometry = TimelineScrollGeometry()
   @State private var refreshTimer: Timer?
   @State private var didInitialScrollInView: Bool = false
   // Gate the ScrollView's visibility on whether the initial auto-scroll has
@@ -152,16 +141,8 @@ struct CanvasTimelineDataView: View {
       ) { _ in
         handleDayTimelineDidBecomeActive()
       }
-      .onPreferenceChange(TimelineCardsLayerFramePreferenceKey.self) { frame in
-        // Preference callbacks fire mid-layout; writing state that feeds the
-        // card ForEach from here can trip AttributeGraph. Defer one turn.
-        DispatchQueue.main.async {
-          cardsLayerFrame = frame
-          updateWeeklyHoursIntersection()
-        }
-      }
       .onChange(of: weeklyHoursFrame) {
-        updateWeeklyHoursIntersection()
+        updateFooterState()
       }
   }
 
@@ -229,7 +210,7 @@ struct CanvasTimelineDataView: View {
     stopRefreshTimer()
     loadTask?.cancel()
     loadTask = nil
-    weeklyHoursIntersectsCard = false
+    footerState.clearCardOverlap()
   }
 
   private func handleDayTimelineDidBecomeActive() {
@@ -266,6 +247,15 @@ struct CanvasTimelineDataView: View {
         .zIndex(10)
     }
     .frame(height: timelineHeight)
+    // The one place scroll position is read. Everything inside the content
+    // sits at a known offset from its top-left, so the footer overlap is
+    // computed from this single frame instead of measuring each label/card.
+    .onGeometryChange(for: CGRect.self) { proxy in
+      proxy.frame(in: .named("TimelinePane"))
+    } action: { frame in
+      scrollGeometry.contentFrame = frame
+      updateFooterState()
+    }
     .padding(.leading, contentLeadingInset)
     .background(Color.clear)
   }
@@ -310,14 +300,11 @@ struct CanvasTimelineDataView: View {
           .lineLimit(1)
           .minimumScaleFactor(0.95)
           .allowsTightening(true)
-          .background(
-            GeometryReader { proxy in
-              Color.clear.preference(
-                key: TimelineTimeLabelFramesPreferenceKey.self,
-                value: [proxy.frame(in: .named("TimelinePane"))]
-              )
-            }
-          )
+          .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.height
+          } action: { height in
+            scrollGeometry.timeLabelHeight = height
+          }
           .frame(height: hourHeight, alignment: .top)
           .offset(y: -8)
           .id("hour-\(hourIndex)")
@@ -331,66 +318,68 @@ struct CanvasTimelineDataView: View {
     .pointingHandCursor(enabled: selectedCardId != nil || selectedActivity != nil)
   }
 
+  // No GeometryReader here on purpose: inside a ScrollView its closure re-runs
+  // as the content moves, which rebuilt every card on every scroll frame.
+  // Cards fill the layer's width and are offset to their start time instead.
   private var cardsLayer: some View {
-    GeometryReader { geo in
-      ZStack(alignment: .topLeading) {
-        Color.clear
-          .contentShape(Rectangle())
-          .onTapGesture {
-            clearSelection()
-          }
-          .pointingHandCursor(enabled: selectedCardId != nil || selectedActivity != nil)
-        ForEach(Array(positionedActivities.enumerated()), id: \.element.id) { index, item in
-          let isVisible = cardEntranceProgress[item.id] ?? false
-          CanvasActivityCard(
-            title: item.title,
-            time: item.timeLabel,
-            height: item.height,
-            durationMinutes: item.durationMinutes,
-            style: style(for: item.categoryName),
-            isSelected: selectedCardId == item.id,
-            isSystemCategory: item.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-              .caseInsensitiveCompare("System") == .orderedSame,
-            isBackupGenerated: item.activity.isBackupGenerated == true,
-            onTap: {
-              if selectedCardId == item.id {
-                clearSelection()
-              } else {
-                selectedCardId = item.id
-                selectedActivity = item.activity
-              }
-            },
-            faviconPrimaryRaw: item.faviconPrimaryRaw,
-            faviconSecondaryRaw: item.faviconSecondaryRaw,
-            faviconPrimaryHost: item.faviconPrimaryHost,
-            faviconSecondaryHost: item.faviconSecondaryHost,
-            statusLine: retryCoordinator.statusLine(for: item.batchIds),
-            failureCount: item.failureCount,
-            fontSize: cardTextFontSize,
-            fontWeight: cardTextFontWeight,
-            iconLeadingInset: cardIconLeadingInset,
-            iconTextSpacing: cardIconTextSpacing,
-            faviconSize: cardFaviconSize,
-            faviconVerticalOffset: cardFaviconVerticalOffset,
-            compactDurationThreshold: cardCompactDurationThreshold,
-            compactVerticalPadding: cardCompactVerticalPadding,
-            normalVerticalPadding: cardNormalVerticalPadding,
-            hoverScale: cardHoverScale,
-            pressedScale: cardPressedScale
-          )
-          .frame(width: geo.size.width, height: item.height)
-          .position(x: geo.size.width / 2, y: item.yPosition + (item.height / 2))
-          .opacity(mutedCategoryKeys.contains(categoryFilterKey(item.categoryName)) ? 0.25 : 1)
-          .animation(.easeOut(duration: 0.15), value: mutedCategoryKeys)
-          // Staggered entrance animation (Emil Kowalski: sequential reveal creates polish)
-          .opacity(isVisible ? 1 : 0)
-          .offset(x: isVisible ? 0 : 12)
-          .animation(
-            .spring(response: 0.35, dampingFraction: 0.8)
-              .delay(Double(index) * 0.03),  // 30ms stagger between cards
-            value: isVisible
-          )
+    ZStack(alignment: .topLeading) {
+      Color.clear
+        .contentShape(Rectangle())
+        .onTapGesture {
+          clearSelection()
         }
+        .pointingHandCursor(enabled: selectedCardId != nil || selectedActivity != nil)
+      ForEach(Array(positionedActivities.enumerated()), id: \.element.id) { index, item in
+        let isVisible = cardEntranceProgress[item.id] ?? false
+        CanvasActivityCard(
+          title: item.title,
+          time: item.timeLabel,
+          height: item.height,
+          durationMinutes: item.durationMinutes,
+          style: style(for: item.categoryName),
+          isSelected: selectedCardId == item.id,
+          isSystemCategory: item.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+            .caseInsensitiveCompare("System") == .orderedSame,
+          isBackupGenerated: item.activity.isBackupGenerated == true,
+          onTap: {
+            if selectedCardId == item.id {
+              clearSelection()
+            } else {
+              selectedCardId = item.id
+              selectedActivity = item.activity
+            }
+          },
+          faviconPrimaryRaw: item.faviconPrimaryRaw,
+          faviconSecondaryRaw: item.faviconSecondaryRaw,
+          faviconPrimaryHost: item.faviconPrimaryHost,
+          faviconSecondaryHost: item.faviconSecondaryHost,
+          statusLine: retryCoordinator.statusLine(for: item.batchIds),
+          failureCount: item.failureCount,
+          fontSize: cardTextFontSize,
+          fontWeight: cardTextFontWeight,
+          iconLeadingInset: cardIconLeadingInset,
+          iconTextSpacing: cardIconTextSpacing,
+          faviconSize: cardFaviconSize,
+          faviconVerticalOffset: cardFaviconVerticalOffset,
+          compactDurationThreshold: cardCompactDurationThreshold,
+          compactVerticalPadding: cardCompactVerticalPadding,
+          normalVerticalPadding: cardNormalVerticalPadding,
+          hoverScale: cardHoverScale,
+          pressedScale: cardPressedScale
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: item.height)
+        .offset(y: item.yPosition)
+        .opacity(mutedCategoryKeys.contains(categoryFilterKey(item.categoryName)) ? 0.25 : 1)
+        .animation(.easeOut(duration: 0.15), value: mutedCategoryKeys)
+        // Staggered entrance animation (Emil Kowalski: sequential reveal creates polish)
+        .opacity(isVisible ? 1 : 0)
+        .offset(x: isVisible ? 0 : 12)
+        .animation(
+          .spring(response: 0.35, dampingFraction: 0.8)
+            .delay(Double(index) * 0.03),  // 30ms stagger between cards
+          value: isVisible
+        )
       }
     }
     // `.clipped()` was here previously with the comment "Prevent shadows/
@@ -410,14 +399,6 @@ struct CanvasTimelineDataView: View {
         loadActivities(animate: false, deferWhileHovering: true)
       }
     }
-    .background(
-      GeometryReader { proxy in
-        Color.clear.preference(
-          key: TimelineCardsLayerFramePreferenceKey.self,
-          value: proxy.frame(in: .named("TimelinePane"))
-        )
-      }
-    )
   }
 
   private var mainTimelineRow: some View {
@@ -728,7 +709,7 @@ struct CanvasTimelineDataView: View {
         {
           clearSelection()
         }
-        self.updateWeeklyHoursIntersection()
+        self.updateFooterState()
 
         if animate {
           // Trigger staggered entrance animation after a brief layout delay
@@ -753,45 +734,50 @@ struct CanvasTimelineDataView: View {
     }
   }
 
-  private func updateWeeklyHoursIntersection() {
-    guard weeklyHoursFrame != .zero,
-      cardsLayerFrame != .zero,
-      weeklyHoursFrame.intersects(cardsLayerFrame)
-    else {
-      if weeklyHoursIntersectsCard {
-        weeklyHoursIntersectsCard = false
-      }
-      return
+  /// Tells the footer whether an hour label or a card is under it. Every
+  /// label and card sits at a known offset inside the scroll content, so their
+  /// on-screen frames come from the content frame alone, with no per-view
+  /// measuring while scrolling.
+  private func updateFooterState() {
+    let contentFrame = scrollGeometry.contentFrame
+    guard contentFrame != .zero else { return }
+
+    let cardsMinX = contentFrame.minX + CanvasConfig.timeColumnWidth
+    let cardsWidth = max(0, contentFrame.width - CanvasConfig.timeColumnWidth)
+
+    // Matches timeColumn: each label starts at its hour row and is nudged up 8pt.
+    let labelFrames = (0..<(CanvasConfig.endHour - CanvasConfig.startHour)).map { hourIndex in
+      CGRect(
+        x: contentFrame.minX,
+        y: contentFrame.minY + CGFloat(hourIndex) * hourHeight - 8,
+        width: CanvasConfig.timeColumnWidth,
+        height: scrollGeometry.timeLabelHeight
+      )
     }
 
-    let intersectsTimelineCard = positionedActivities.contains { item in
-      let cardFrame = CGRect(
-        x: cardsLayerFrame.minX,
-        y: cardsLayerFrame.minY + item.yPosition,
-        width: cardsLayerFrame.width,
+    var cardFrames = positionedActivities.map { item in
+      CGRect(
+        x: cardsMinX,
+        y: contentFrame.minY + item.yPosition,
+        width: cardsWidth,
         height: item.height
       )
-      return cardFrame.intersects(weeklyHoursFrame)
     }
-
-    let intersectsStatusCard: Bool
     if let projection = recordingProjection {
-      let statusFrame = CGRect(
-        x: cardsLayerFrame.minX,
-        y: cardsLayerFrame.minY + calculateYPosition(for: projection.start) + 1,
-        width: cardsLayerFrame.width,
-        height: recordingProjectionHeight(for: projection)
-      )
-      intersectsStatusCard = statusFrame.intersects(weeklyHoursFrame)
-    } else {
-      intersectsStatusCard = false
+      cardFrames.append(
+        CGRect(
+          x: cardsMinX,
+          y: contentFrame.minY + calculateYPosition(for: projection.start) + 1,
+          width: cardsWidth,
+          height: recordingProjectionHeight(for: projection)
+        ))
     }
 
-    let intersects = intersectsTimelineCard || intersectsStatusCard
-
-    if weeklyHoursIntersectsCard != intersects {
-      weeklyHoursIntersectsCard = intersects
-    }
+    footerState.update(
+      footerFrame: weeklyHoursFrame,
+      labelFrames: labelFrames,
+      cardFrames: cardFrames
+    )
   }
 
   private func recordingProjectionHeight(for projection: TimelineRecordingProjectionWindow)
@@ -912,7 +898,6 @@ extension CanvasTimelineDataView {
     @State private var selected: TimelineActivity? = nil
     @State private var tick: Int = 0
     @State private var refresh: Int = 0
-    @State private var weeklyHoursIntersectsCard = false
     var body: some View {
       CanvasTimelineDataView(
         selectedDate: $date,
@@ -921,7 +906,7 @@ extension CanvasTimelineDataView {
         hasAnyActivities: .constant(true),
         refreshTrigger: $refresh,
         weeklyHoursFrame: .zero,
-        weeklyHoursIntersectsCard: $weeklyHoursIntersectsCard,
+        footerState: TimelineFooterState(),
         contentLeadingInset: 0,
         hourHeight: TimelineScale.hourHeight,
         cardTextFontSize: TimelineTypography.cardTextFontSize,
